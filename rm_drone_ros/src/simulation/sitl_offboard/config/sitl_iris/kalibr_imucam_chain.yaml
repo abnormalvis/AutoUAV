@@ -1,0 +1,20 @@
+%YAML:1.0
+
+# SITL RGB camera (libgazebo_ros_camera.so on camera_link).
+# T_cam_imu is the identity: camera and IMU are co-located on camera_link.
+# Canonical baseline: 848x480, centered pinhole, zero distortion,
+# horizontal_fov 1.5009831567 rad => fx=fy=455.4, cx=424.0, cy=240.0.
+cam0:
+  T_cam_imu:
+    - [1.0, 0.0, 0.0, 0.0]
+    - [0.0, 1.0, 0.0, 0.0]
+    - [0.0, 0.0, 1.0, 0.0]
+    - [0.0, 0.0, 0.0, 1.0]
+  cam_overlaps: []
+  camera_model: pinhole
+  distortion_model: radtan
+  intrinsics: [455.4, 455.4, 424.0, 240.0]
+  distortion_coeffs: [0.0, 0.0, 0.0, 0.0]
+  resolution: [848, 480]
+  rostopic: /camera/left/image_raw
+  timeshift_cam_imu: 0.0

@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  RoboMaster 2027 空中机器人机库
+  依据制作规范手册 2.4.4 / 表 2-10：
+    最大收纳尺寸 300*300*200mm（L*W*H）
+    最大伸展尺寸 600*300*400mm（L*W*H），伸展方向紧邻能量机关立柱
+    空中机器人装载量上限 4
+    最大供电总容量 300Wh，最大工作电压 30V
+    裁判系统：主控模块 x1、电源管理模块 x1、相机图传模块（发送端）x1
+  本模型仅提供静态碰撞/视觉占位，起降平台高度与停机位需按实际机库结构替换 mesh。
+-->
+<sdf version="1.7">
+  <model name="rm2027_hangar">
+    <static>true</static>
+
+    <!-- 机库主体：600 x 300 x 400，起降平台面在 +200mm 处 -->
+    <link name="hangar_body">
+      <pose>0 0 0.2 0 0 0</pose>
+      <collision name="c">
+        <geometry>
+          <box>
+            <size>0.6 0.3 0.4</size>
+          </box>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.7</mu>
+              <mu2>0.7</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+      <visual name="v">
+        <geometry>
+          <box>
+            <size>0.6 0.3 0.4</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.30 0.32 0.36 1</ambient>
+          <diffuse>0.34 0.36 0.40 1</diffuse>
+          <specular>0.3 0.3 0.3 1</specular>
+        </material>
+      </visual>
+    </link>
+
+    <!-- 起降平台：300 x 300，位于机库顶部 -->
+    <link name="deck">
+      <pose>0 0 0.4 0 0 0</pose>
+      <collision name="c">
+        <geometry>
+          <box>
+            <size>0.3 0.3 0.02</size>
+          </box>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+      <visual name="v">
+        <geometry>
+          <box>
+            <size>0.3 0.3 0.02</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.85 0.60 0.15 1</ambient>
+          <diffuse>0.90 0.66 0.20 1</diffuse>
+          <specular>0.2 0.2 0.2 1</specular>
+        </material>
+      </visual>
+    </link>
+
+    <!-- 充电/对接接口占位（裁判系统电源管理模块安装位） -->
+    <link name="charging_port">
+      <pose>0.15 0 0.41 0 0 0</pose>
+      <collision name="c">
+        <geometry>
+          <cylinder>
+            <radius>0.03</radius>
+            <length>0.02</length>
+          </cylinder>
+        </geometry>
+      </collision>
+      <visual name="v">
+        <geometry>
+          <cylinder>
+            <radius>0.03</radius>
+            <length>0.02</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.10 0.10 0.10 1</ambient>
+          <diffuse>0.15 0.15 0.15 1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <!-- 相机图传模块（发送端）占位，朝向场地内侧 -->
+    <link name="camera_link">
+      <pose>-0.2 0 0.35 0 0 0</pose>
+      <collision name="c">
+        <geometry>
+          <box>
+            <size>0.08 0.05 0.05</size>
+          </box>
+        </geometry>
+      </collision>
+      <visual name="v">
+        <geometry>
+          <box>
+            <size>0.08 0.05 0.05</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.05 0.05 0.05 1</ambient>
+          <diffuse>0.08 0.08 0.08 1</diffuse>
+        </material>
+      </visual>
+      <sensor name="hangar_camera" type="camera">
+        <camera>
+          <horizontal_fov>1.047</horizontal_fov>
+          <image>
+            <width>640</width>
+            <height>360</height>
+          </image>
+          <clip>
+            <near>0.1</near>
+            <far>30</far>
+          </clip>
+        </camera>
+        <always_on>1</always_on>
+        <update_rate>30</update_rate>
+        <visualize>true</visualize>
+      </sensor>
+    </link>
+
+    <!-- 停机位标记：用于空中机器人 spawn 参考（无碰撞） -->
+    <link name="spawn_marker">
+      <pose>0 0 0.021 0 0 0</pose>
+      <visual name="v">
+        <geometry>
+          <cylinder>
+            <radius>0.12</radius>
+            <length>0.005</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.2 0.8 0.2 0.6</ambient>
+          <diffuse>0.2 0.8 0.2 0.6</diffuse>
+          <emissive>0.1 0.4 0.1 0.4</emissive>
+        </material>
+      </visual>
+    </link>
+
+  </model>
+</sdf>

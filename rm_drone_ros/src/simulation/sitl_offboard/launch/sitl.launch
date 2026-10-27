@@ -1,0 +1,44 @@
+<launch>
+  <!-- Start a lightweight indoor test world and spawn the iris_vio model.
+       PX4 is started separately with scripts/run_px4_sitl.sh. -->
+  <arg name="world" default="$(find sitl_offboard)/worlds/indoor_room.sdf" />
+  <arg name="model" default="iris_vio" />
+  <arg name="spawn_z" default="0.3" />
+  <arg name="px4_src" default="/home/idris-24-04/px4_ws/PX4-Autopilot" />
+  <arg name="px4_build" default="/home/idris-24-04/px4_ws/PX4-Autopilot/build/px4_sitl_default" />
+  <arg name="start_depth_bridge" default="false" />
+
+  <!-- Gazebo must be able to load the iris model's PX4 plugins and resolve
+       both model://iris_vio (ours) and model://iris (PX4 base). These mirror
+       the environment exported by run_px4_sitl.sh so either terminal works
+       on its own. -->
+     <env name="GAZEBO_MODEL_PATH" value="$(find sitl_offboard)/worlds/rm2027_gazebo/models:$(find sitl_offboard)/models:$(arg px4_src)/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models:$(optenv GAZEBO_MODEL_PATH)" />
+  <env name="GAZEBO_PLUGIN_PATH" value="$(arg px4_build)/build_gazebo-classic:$(optenv GAZEBO_PLUGIN_PATH)" />
+  <env name="LD_LIBRARY_PATH" value="$(arg px4_build)/build_gazebo-classic:$(optenv LD_LIBRARY_PATH)" />
+
+     <!-- Start Gazebo Classic with the selected test world. -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(arg world)" />
+    <arg name="paused" value="false" />
+    <arg name="use_sim_time" value="true" />
+    <arg name="gui" value="true" />
+    <arg name="headless" value="false" />
+    <arg name="debug" value="false" />
+    <arg name="verbose" value="true" />
+  </include>
+
+  <!-- Spawn the vehicle. spawn_model waits for Gazebo's spawn service, so no
+       explicit sleep is needed. -->
+  <node name="spawn_iris_vio" pkg="gazebo_ros" type="spawn_model" output="screen"
+        args="-file $(find sitl_offboard)/models/iris_vio/iris_vio.sdf -sdf -model $(arg model) -z $(arg spawn_z)" />
+
+  <!-- Ground-truth camera pose (validation aid). EGO's default config reads its
+       camera pose from /ov_msckf/odomimu (pose_type=2); /camera/pose is the
+       matching ground-truth PoseStamped for cross-checking VIO. -->
+  <node name="camera_pose_bridge" pkg="sitl_offboard" type="camera_pose_bridge.py" output="screen" />
+
+  <!-- Fallback depth converter: enable only if the depth sensor emits 32FC1 m
+       instead of the expected 16UC1 mm (check with rostopic echo -n1). -->
+  <node if="$(arg start_depth_bridge)" name="depth_mm_bridge" pkg="sitl_offboard"
+        type="depth_mm_bridge.py" output="screen" />
+</launch>

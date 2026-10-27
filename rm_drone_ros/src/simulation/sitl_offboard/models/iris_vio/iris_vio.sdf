@@ -1,0 +1,163 @@
+<?xml version="1.0"?>
+<!--
+  iris_vio: 3DR Iris (model://iris) extended with a forward-facing VIO sensor
+  suite on one rigid link. All four sensors are co-located on camera_link so
+  T_cam_imu is the identity (the canonical sitl_offboard baseline).
+
+  Sensor topics (bound explicitly at the plugin level):
+    RGB   libgazebo_ros_camera.so        -> /camera/left/image_raw
+    Depth libgazebo_ros_openni_kinect.so -> /camera/depth/image_rect_raw (16UC1 mm)
+    IMU   libgazebo_ros_imu_sensor.so    -> /camera/imu (200 Hz)
+    Pose  libgazebo_ros_p3d.so           -> /camera/pose_odom (world frame)
+
+  Canonical intrinsics: 848x480, horizontal_fov 1.5009831567 rad =>
+  fx=fy=455.4, cx=424.0, cy=240.0 (Gazebo Classic keeps the optical axis
+  centered, so cx/cy are exactly width/2, height/2).
+-->
+<sdf version="1.6">
+  <model name="iris_vio">
+    <!-- Base quad + PX4 plugins (motors, mavlink on TCP 4560, PX4 imu/mag/baro/gps). -->
+    <include>
+      <uri>model://iris</uri>
+    </include>
+
+    <!-- Forward-facing sensor link, looking along +X (Iris body forward axis). -->
+    <link name="camera_link">
+      <pose>0.1 0 0 0 0 0</pose>
+      <inertial>
+        <mass>0.02</mass>
+        <inertia>
+          <ixx>1e-05</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>1e-05</iyy>
+          <iyz>0</iyz>
+          <izz>1e-05</izz>
+        </inertia>
+      </inertial>
+
+      <!-- RGB camera: OpenVINS monocular input. -->
+      <sensor name="rgb_camera" type="camera">
+        <always_on>1</always_on>
+        <update_rate>30</update_rate>
+        <camera>
+          <horizontal_fov>1.5009831567</horizontal_fov>
+          <image>
+            <width>848</width>
+            <height>480</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>0.001</near>
+            <far>65.535</far>
+          </clip>
+          <distortion>
+            <k1>0.0</k1>
+            <k2>0.0</k2>
+            <k3>0.0</k3>
+            <p1>0.0</p1>
+            <p2>0.0</p2>
+            <center>0.5 0.5</center>
+          </distortion>
+        </camera>
+        <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+          <cameraName>camera/left</cameraName>
+          <imageTopicName>image_raw</imageTopicName>
+          <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+          <frameName>camera_link</frameName>
+          <updateRate>30</updateRate>
+          <hackBaseline>0.0</hackBaseline>
+          <distortionK1>0.0</distortionK1>
+          <distortionK2>0.0</distortionK2>
+          <distortionK3>0.0</distortionK3>
+          <distortionT1>0.0</distortionT1>
+          <distortionT2>0.0</distortionT2>
+        </plugin>
+      </sensor>
+
+      <!-- Depth camera: EGO depth input, 16UC1 millimeters. Its RGB stream is unused. -->
+      <sensor name="depth_camera" type="depth">
+        <always_on>1</always_on>
+        <update_rate>15</update_rate>
+        <camera>
+          <horizontal_fov>1.5009831567</horizontal_fov>
+          <image>
+            <width>848</width>
+            <height>480</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>0.001</near>
+            <far>65.535</far>
+          </clip>
+        </camera>
+        <plugin name="depth_camera_controller" filename="libgazebo_ros_openni_kinect.so">
+          <robotNamespace>camera</robotNamespace>
+          <cameraName>depth</cameraName>
+          <alwaysOn>true</alwaysOn>
+          <updateRate>15</updateRate>
+          <pointCloudCutoff>0.2</pointCloudCutoff>
+          <pointCloudCutoffMax>65.535</pointCloudCutoffMax>
+          <imageTopicName>rgb/image_raw</imageTopicName>
+          <cameraInfoTopicName>rgb/camera_info</cameraInfoTopicName>
+          <depthImageTopicName>image_rect_raw</depthImageTopicName>
+          <depthImageCameraInfoTopicName>camera_info</depthImageCameraInfoTopicName>
+          <pointCloudTopicName>points</pointCloudTopicName>
+          <frameName>camera_link</frameName>
+          <useDepth16UC1Format>true</useDepth16UC1Format>
+          <distortion_k1>0.0</distortion_k1>
+          <distortion_k2>0.0</distortion_k2>
+          <distortion_k3>0.0</distortion_k3>
+          <distortion_t1>0.0</distortion_t1>
+          <distortion_t2>0.0</distortion_t2>
+        </plugin>
+      </sensor>
+
+      <!-- ROS IMU: OpenVINS imu0 input. Per-sample gaussian stddevs are the
+           canonical densities (gyro 1.7e-4, accel 3.0e-3 rad|m/s^2/sqrt(Hz))
+           scaled by sqrt(200 Hz). -->
+      <sensor name="imu_sensor" type="imu">
+        <always_on>1</always_on>
+        <update_rate>200</update_rate>
+        <imu>
+          <angular_velocity>
+            <x><noise type="gaussian"><mean>0.0</mean><stddev>0.0024</stddev></noise></x>
+            <y><noise type="gaussian"><mean>0.0</mean><stddev>0.0024</stddev></noise></y>
+            <z><noise type="gaussian"><mean>0.0</mean><stddev>0.0024</stddev></noise></z>
+          </angular_velocity>
+          <linear_acceleration>
+            <x><noise type="gaussian"><mean>0.0</mean><stddev>0.0424</stddev></noise></x>
+            <y><noise type="gaussian"><mean>0.0</mean><stddev>0.0424</stddev></noise></y>
+            <z><noise type="gaussian"><mean>0.0</mean><stddev>0.0424</stddev></noise></z>
+          </linear_acceleration>
+        </imu>
+        <plugin name="imu_plugin" filename="libgazebo_ros_imu_sensor.so">
+          <robotNamespace></robotNamespace>
+          <frameName>camera_link</frameName>
+          <topicName>/camera/imu</topicName>
+          <updateRateHZ>200</updateRateHZ>
+          <gaussianNoise>0.0</gaussianNoise>
+          <initialOrientationAsReference>false</initialOrientationAsReference>
+        </plugin>
+      </sensor>
+    </link>
+
+    <joint name="camera_joint" type="fixed">
+      <parent>iris::base_link</parent>
+      <child>camera_link</child>
+    </joint>
+
+    <!-- Ground-truth camera pose (nav_msgs/Odometry) in the Gazebo world frame.
+         Republished as PoseStamped by camera_pose_bridge.py for validation. -->
+    <plugin name="camera_pose_plugin" filename="libgazebo_ros_p3d.so">
+      <robotNamespace></robotNamespace>
+      <bodyName>camera_link</bodyName>
+      <topicName>/camera/pose_odom</topicName>
+      <frameName>world</frameName>
+      <updateRate>50</updateRate>
+      <gaussianNoise>0.0</gaussianNoise>
+      <xyzOffset>0 0 0</xyzOffset>
+      <rpyOffset>0 0 0</rpyOffset>
+    </plugin>
+  </model>
+</sdf>

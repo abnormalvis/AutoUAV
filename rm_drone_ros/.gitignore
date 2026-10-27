@@ -1,0 +1,11 @@
+build/
+devel/
+install/
+logs/
+build_isolated/
+devel_isolated/
+install_isolated/
+logs_isolated/
+.catkin_workspace
+__pycache__/
+*.py[cod]

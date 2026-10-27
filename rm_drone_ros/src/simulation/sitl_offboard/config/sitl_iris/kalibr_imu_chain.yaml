@@ -1,0 +1,42 @@
+%YAML:1.0
+
+# SITL ROS IMU (libgazebo_ros_imu_sensor.so on camera_link).
+# T_i_b is the identity: the IMU and body frames coincide, and the camera is
+# co-located on the same link, so the OpenVINS body frame == camera_link.
+# Noise densities follow the sitl_offboard canonical baseline (D455-like):
+#   gyro  1.7e-4 rad/s/sqrt(Hz)
+#   accel 3.0e-3 m/s^2/sqrt(Hz)
+imu0:
+  T_i_b:
+    - [1.0, 0.0, 0.0, 0.0]
+    - [0.0, 1.0, 0.0, 0.0]
+    - [0.0, 0.0, 1.0, 0.0]
+    - [0.0, 0.0, 0.0, 1.0]
+  accelerometer_noise_density: 0.003
+  accelerometer_random_walk: 0.0001
+  gyroscope_noise_density: 0.00017
+  gyroscope_random_walk: 0.00001
+  rostopic: /camera/imu
+  time_offset: 0.0
+  update_rate: 200
+  model: "kalibr"
+  Tw:
+    - [ 1.0, 0.0, 0.0 ]
+    - [ 0.0, 1.0, 0.0 ]
+    - [ 0.0, 0.0, 1.0 ]
+  R_IMUtoGYRO:
+    - [ 1.0, 0.0, 0.0 ]
+    - [ 0.0, 1.0, 0.0 ]
+    - [ 0.0, 0.0, 1.0 ]
+  Ta:
+    - [ 1.0, 0.0, 0.0 ]
+    - [ 0.0, 1.0, 0.0 ]
+    - [ 0.0, 0.0, 1.0 ]
+  R_IMUtoACC:
+    - [ 1.0, 0.0, 0.0 ]
+    - [ 0.0, 1.0, 0.0 ]
+    - [ 0.0, 0.0, 1.0 ]
+  Tg:
+    - [ 0.0, 0.0, 0.0 ]
+    - [ 0.0, 0.0, 0.0 ]
+    - [ 0.0, 0.0, 0.0 ]

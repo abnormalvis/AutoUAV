@@ -56,13 +56,14 @@
   <build_depend>rospy</build_depend>
   <build_depend>std_msgs</build_depend>
   <build_depend>geometry_msgs</build_depend>
-  <build_depend>mav_msgs</build_depend>
   <build_depend>sensor_msgs</build_depend>
   <build_depend>tf</build_depend>
   <!-- <build_depend>pcl_ros</build_depend> -->
   <build_depend>mavros</build_depend>
-  <build_depend>mavros_extras</build_depend>
   <build_depend>mavros_msgs</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>quadrotor_msgs</build_depend>
+  <build_depend>eigen</build_depend>
 
   <!-- <exec_depend>dynamic_reconfigure</exec_depend> -->
   <exec_depend>message_runtime</exec_depend>
@@ -70,14 +71,15 @@
   <exec_depend>rospy</exec_depend>
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
-  <exec_depend>mav_msgs</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>octomap</exec_depend>
   <exec_depend>tf</exec_depend>
   <!-- <exec_depend>pcl_ros</exec_depend> -->
   <exec_depend>mavros</exec_depend>
-  <exec_depend>mavros_extras</exec_depend>
   <exec_depend>mavros_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>quadrotor_msgs</exec_depend>
+  <exec_depend>eigen</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

@@ -1,0 +1,91 @@
+<launch>
+  <arg name="fcu_url" default="udp://:14540@127.0.0.1:14557" />
+  <arg name="start_mavros" default="true" />
+  <arg name="start_openvins" default="true" />
+  <arg name="enable_flight" default="false" />
+  <arg name="takeoff_height" default="0.5" />
+  <arg name="takeoff_vertical_speed" default="0.25" />
+  <arg name="takeoff_tolerance" default="0.1" />
+  <arg name="yaw_excitation_rate" default="0.12" />
+  <arg name="yaw_excitation_duration" default="1.5" />
+  <arg name="offboard_prestream_duration" default="1.5" />
+  <arg name="sensor_timeout" default="2.0" />
+  <arg name="bootstrap_timeout" default="15.0" />
+  <arg name="max_velocity" default="0.6" />
+  <arg name="max_acc" default="0.8" />
+  <arg name="vio_stable_duration" default="2.0" />
+  <arg name="vio_init_timeout" default="30.0" />
+  <arg name="land_request_retry" default="1.0" />
+
+  <include file="$(find sitl_offboard)/launch/px4_vio_ctrl.launch">
+    <arg name="fcu_url" value="$(arg fcu_url)" />
+    <arg name="start_mavros" value="$(arg start_mavros)" />
+    <arg name="start_openvins" value="$(arg start_openvins)" />
+    <arg name="start_px4ctrl" value="false" />
+  </include>
+
+  <include file="$(find ego_planner)/launch/advanced_param_exp.xml">
+    <arg name="drone_id" value="0" />
+    <arg name="map_size_x_" value="30.0" />
+    <arg name="map_size_y_" value="30.0" />
+    <arg name="map_size_z_" value="4.0" />
+    <arg name="odometry_topic" value="/ov_msckf/odomimu" />
+    <arg name="camera_pose_topic" value="/camera/pose" />
+    <arg name="depth_topic" value="/camera/depth/image_rect_raw" />
+    <arg name="cloud_topic" value="unused_cloud" />
+    <arg name="cx" value="424.0" />
+    <arg name="cy" value="240.0" />
+    <arg name="fx" value="455.4" />
+    <arg name="fy" value="455.4" />
+    <arg name="max_vel" value="$(arg max_velocity)" />
+    <arg name="max_acc" value="$(arg max_acc)" />
+    <arg name="planning_horizon" value="5.0" />
+    <arg name="point_num" value="2" />
+    <arg name="point0_x" value="2.0" />
+    <arg name="point0_y" value="0.0" />
+    <arg name="point0_z" value="1.0" />
+    <arg name="point1_x" value="0.0" />
+    <arg name="point1_y" value="0.0" />
+    <arg name="point1_z" value="1.0" />
+    <arg name="point2_x" value="2.0" />
+    <arg name="point2_y" value="0.0" />
+    <arg name="point2_z" value="1.0" />
+    <arg name="point3_x" value="0.0" />
+    <arg name="point3_y" value="0.0" />
+    <arg name="point3_z" value="1.0" />
+    <arg name="point4_x" value="2.0" />
+    <arg name="point4_y" value="0.0" />
+    <arg name="point4_z" value="1.0" />
+    <arg name="flight_type" value="2" />
+    <arg name="realworld_experiment" value="true" />
+    <arg name="use_distinctive_trajs" value="false" />
+    <arg name="obj_num_set" value="0" />
+  </include>
+
+  <node pkg="ego_planner" name="drone_0_traj_server" type="traj_server" output="screen">
+    <remap from="position_cmd" to="/position_cmd" />
+    <remap from="~planning/bspline" to="/drone_0_planning/bspline" />
+    <param name="traj_server/time_forward" value="1.0" />
+  </node>
+
+  <node if="$(arg enable_flight)" pkg="offboard" type="offboard_planner_tracker_node"
+        name="offboard_planner_tracker" output="screen">
+    <param name="takeoff_height" value="$(arg takeoff_height)" />
+    <param name="takeoff_vertical_speed" value="$(arg takeoff_vertical_speed)" />
+    <param name="takeoff_tolerance" value="$(arg takeoff_tolerance)" />
+    <param name="yaw_excitation_rate" value="$(arg yaw_excitation_rate)" />
+    <param name="yaw_excitation_duration" value="$(arg yaw_excitation_duration)" />
+    <param name="offboard_prestream_duration" value="$(arg offboard_prestream_duration)" />
+    <param name="bootstrap_timeout" value="$(arg bootstrap_timeout)" />
+    <param name="vio_stable_duration" value="$(arg vio_stable_duration)" />
+    <param name="vio_init_timeout" value="$(arg vio_init_timeout)" />
+    <param name="sensor_timeout" value="$(arg sensor_timeout)" />
+    <param name="land_request_retry" value="$(arg land_request_retry)" />
+    <param name="max_velocity" value="$(arg max_velocity)" />
+    <param name="position_gain" value="0.8" />
+    <param name="command_timeout" value="0.5" />
+  </node>
+
+  <node pkg="rviz" type="rviz" name="sitl_rviz"
+        args="-d $(find ego_planner)/launch/default.rviz" output="screen" />
+</launch>

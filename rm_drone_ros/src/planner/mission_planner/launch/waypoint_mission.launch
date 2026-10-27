@@ -1,0 +1,17 @@
+<launch>
+  <arg name="setpoint_topic" default="/mavros/setpoint_position/local" />
+  <arg name="state_topic" default="/mission/state" />
+  <arg name="takeoff_altitude" default="1.5" />
+  <arg name="search_distance" default="11.0" />
+  <arg name="offboard_mode" default="OFFBOARD" />
+  <arg name="fallback_mode" default="POSCTL" />
+
+  <node pkg="mission_planner" type="mission_manager_node" name="mission_manager" output="screen">
+    <param name="setpoint_topic" value="$(arg setpoint_topic)" />
+    <param name="state_topic" value="$(arg state_topic)" />
+    <param name="takeoff_altitude" value="$(arg takeoff_altitude)" />
+    <param name="search_distance" value="$(arg search_distance)" />
+    <param name="offboard_mode" value="$(arg offboard_mode)" />
+    <param name="fallback_mode" value="$(arg fallback_mode)" />
+  </node>
+</launch>

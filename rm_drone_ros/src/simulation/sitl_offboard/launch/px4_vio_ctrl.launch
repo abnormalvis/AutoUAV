@@ -1,0 +1,47 @@
+<launch>
+  <arg name="fcu_url" default="udp://:14540@127.0.0.1:14557" />
+  <arg name="gcs_url" default="" />
+  <arg name="start_mavros" default="true" />
+  <arg name="start_openvins" default="true" />
+  <arg name="openvins_config" default="$(find sitl_offboard)/config/sitl_iris/estimator_config.yaml" />
+  <arg name="camera_topic" default="/camera/left/image_raw" />
+  <arg name="imu_topic" default="/camera/imu" />
+  <arg name="odom_topic" default="/ov_msckf/odomimu" />
+  <arg name="vision_pose_topic" default="/mavros/vision_pose/pose" />
+  <arg name="px4ctrl_config" default="$(find px4ctrl)/config/ctrl_param_fpv.yaml" />
+  <arg name="enable_rc_free_takeoff" default="true" />
+  <arg name="start_px4ctrl" default="true" />
+
+  <group if="$(arg start_mavros)">
+    <include file="$(find mavros)/launch/px4.launch">
+      <arg name="fcu_url" value="$(arg fcu_url)" />
+      <arg name="gcs_url" value="$(arg gcs_url)" />
+    </include>
+  </group>
+
+  <group if="$(arg start_openvins)">
+    <include file="$(find ov_msckf)/launch/subscribe.launch">
+      <arg name="config_path" value="$(arg openvins_config)" />
+      <arg name="topic_camera0" value="$(arg camera_topic)" />
+      <arg name="topic_imu" value="$(arg imu_topic)" />
+      <arg name="max_cameras" value="1" />
+      <arg name="use_stereo" value="false" />
+      <arg name="run_dynamic_mask" value="false" />
+    </include>
+  </group>
+
+  <include file="$(find vision_to_mavros)/launch/openvins_to_mavros.launch">
+    <arg name="openvins_pose_topic" value="$(arg odom_topic)" />
+    <arg name="mavros_pose_topic" value="$(arg vision_pose_topic)" />
+  </include>
+
+  <group if="$(arg start_px4ctrl)">
+    <node pkg="px4ctrl" type="px4ctrl_node" name="px4ctrl" output="screen">
+      <remap from="~odom" to="$(arg odom_topic)" />
+      <remap from="~cmd" to="/position_cmd" />
+      <rosparam command="load" file="$(arg px4ctrl_config)" />
+      <param name="auto_takeoff_land/enable_auto_arm" value="$(arg enable_rc_free_takeoff)" />
+      <param name="auto_takeoff_land/no_RC" value="$(arg enable_rc_free_takeoff)" />
+    </node>
+  </group>
+</launch>

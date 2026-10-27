@@ -1,0 +1,66 @@
+<launch>
+  <arg name="px4_src" default="/home/idris-24-04/px4_ws/PX4-Autopilot" />
+  <arg name="px4_build" default="$(arg px4_src)/build/px4_sitl_default" />
+  <arg name="world" default="$(find sitl_offboard)/worlds/indoor_room.sdf" />
+  <arg name="uav_id" default="1" />
+  <arg name="demo" default="enu_xyz_pos_control" />
+  <arg name="takeoff_height" default="1.5" />
+  <arg name="takeoff_timeout" default="45.0" />
+  <arg name="fcu_url" default="udp://:14540@127.0.0.1:14557" />
+  <arg name="start_demo_runner" default="true" />
+
+  <include file="$(find sitl_offboard)/launch/sitl.launch">
+    <arg name="world" value="$(arg world)" />
+    <arg name="model" value="iris_vio" />
+    <arg name="spawn_z" value="0.3" />
+    <arg name="px4_src" value="$(arg px4_src)" />
+    <arg name="px4_build" value="$(arg px4_build)" />
+  </include>
+
+  <node pkg="sitl_offboard" type="run_px4_sitl.sh" name="px4_sitl" output="screen">
+    <env name="PX4_HOME" value="$(arg px4_src)" />
+    <env name="PX4_BUILD_DIR" value="$(arg px4_build)" />
+    <env name="PX4_SYS_AUTOSTART" value="10015" />
+    <env name="PX4_SIM_MODEL" value="gazebo-classic_iris_vio" />
+    <env name="PX4_SIM_WORLD" value="indoor_room" />
+    <env name="PX4_SIM_SPEED_FACTOR" value="1.0" />
+  </node>
+
+  <group ns="uav$(arg uav_id)">
+    <include file="$(find mavros)/launch/px4.launch">
+      <arg name="fcu_url" value="$(arg fcu_url)" />
+      <arg name="gcs_url" value="" />
+    </include>
+  </group>
+
+  <node pkg="sitl_offboard" type="prometheus_truth_bridge.py"
+        name="prometheus_truth_bridge" output="screen">
+    <param name="uav_id" value="$(arg uav_id)" />
+    <param name="input_topic" value="/camera/pose_odom" />
+  </node>
+
+  <node pkg="prometheus_uav_control" type="uav_control_main"
+        name="uav_control_main_$(arg uav_id)" output="screen">
+    <param name="uav_id" value="$(arg uav_id)" />
+    <param name="sim_mode" value="true" />
+    <param name="flag_printf" value="true" />
+    <param name="control/enable_external_control" value="false" />
+    <rosparam command="load" file="$(find prometheus_uav_control)/launch/uav_control_indoor.yaml" />
+    <rosparam command="load" file="$(find prometheus_uav_control)/launch/sensor_tf_offset.yaml" />
+    <param name="control/location_source" value="2" />
+    <param name="control/Takeoff_height" value="$(arg takeoff_height)" />
+    <param name="control/maximum_safe_vel_xy" value="4.0" />
+    <param name="control/maximum_safe_vel_z" value="3.0" />
+    <param name="control/maximum_vel_error_for_vision" value="10.0" />
+    <param name="control/maximum_vel_error_for_Odom" value="10.0" />
+    <param name="enable_px4_params_load" value="false" />
+  </node>
+
+  <node if="$(arg start_demo_runner)" pkg="sitl_offboard"
+        type="prometheus_sitl_demo.py" name="prometheus_sitl_demo" output="screen">
+    <param name="uav_id" value="$(arg uav_id)" />
+    <param name="demo" value="$(arg demo)" />
+    <param name="takeoff_height" value="$(arg takeoff_height)" />
+    <param name="takeoff_timeout" value="$(arg takeoff_timeout)" />
+  </node>
+</launch>

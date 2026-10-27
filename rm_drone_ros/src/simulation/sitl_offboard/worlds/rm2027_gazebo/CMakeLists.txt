@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.10)
+project(rm2027_gazebo LANGUAGES CXX)
+find_package(ignition-cmake2 REQUIRED)
+ignition_cmake2_generate_version_header()
+gz_package_xml()
+install(DIRECTORY models DESTINATION share/rm2027_gazebo)
+install(FILES rm2027_arena.world DESTINATION share/rm2027_gazebo/worlds)

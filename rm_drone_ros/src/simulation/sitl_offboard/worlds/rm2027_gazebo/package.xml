@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>rm2027_gazebo</name>
+  <version>0.1.0</version>
+  <description>RoboMaster 2027 arena Gazebo/SDFormat model world (28m x 15m)</description>
+  <maintainer email="you@team.org">RM2027 Team</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ignition-cmake2</buildtool_depend>
+</package>

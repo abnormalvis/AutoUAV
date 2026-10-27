@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <world name="rm2027_arena_classic">
+    <physics name="default_physics" type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+      <ode>
+        <solver>
+          <type>quick</type>
+          <iters>50</iters>
+        </solver>
+      </ode>
+    </physics>
+
+    <scene>
+      <shadows>true</shadows>
+      <ambient>0.4 0.4 0.4 1</ambient>
+      <background>0.7 0.7 0.7 1</background>
+    </scene>
+
+    <light name="sun" type="directional">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.95 0.95 0.95 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>0.3 -0.4 -0.9</direction>
+    </light>
+
+    <gravity>0 0 -9.80665</gravity>
+
+    <include>
+      <uri>model://rm2027_field</uri>
+      <name>arena</name>
+    </include>
+    <include>
+      <uri>model://rm2027_hangar</uri>
+      <name>hangar_red</name>
+      <pose>11.0 3.2 0 0 0 1.5708</pose>
+    </include>
+    <include>
+      <uri>model://rm2027_hangar</uri>
+      <name>hangar_blue</name>
+      <pose>-11.0 3.2 0 0 0 -1.5708</pose>
+    </include>
+  </world>
+</sdf>

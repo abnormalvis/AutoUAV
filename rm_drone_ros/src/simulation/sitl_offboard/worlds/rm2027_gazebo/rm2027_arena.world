@@ -1,0 +1,485 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  RoboMaster 2027 机甲大师高校系列赛 赛场 Gazebo 仿真世界
+  依据《RoboMaster 2027 机甲大师高校系列赛机器人制作规范手册 V1.0.0（20261015）》生成
+  坐标系：X 沿场地长轴（蓝方→红方为正），Y 沿宽轴，Z 向上；原点在场地几何中心地面。
+  单位：m。碰撞体按道具轮廓包络建模，视觉网格需替换为官方 STEP 图纸导出件。
+  注：道具绝对坐标为示意布局，最终以官方《比赛规则手册》场地说明图纸为准。
+-->
+<sdf version="1.9">
+  <world name="robomaster_2027_arena">
+    <physics name="1ms" type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+      <ode>
+        <solver><type>quick</type><iters>50</iters><precon_iters>0</precon_iters></solver>
+        <constraints><cfm>0.00001</cfm><erp>0.2</erp><contact_max_correcting_vel>200</contact_max_correcting_vel></constraints>
+      </ode>
+    </physics>
+
+    <scene>
+      <shadows>true</shadows>
+      <ambient>0.4 0.4 0.4 1</ambient>
+      <background>0.7 0.7 0.7 1</background>
+    </scene>
+
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.95 0.95 0.95 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>0.3 -0.4 -0.9</direction>
+    </light>
+
+    <gravity>0 0 -9.80665</gravity>
+    <magnetic_field>0 0 0</magnetic_field>
+
+    <wind/>
+    <atmosphere type="adiabatic"/>
+    <audio>
+      <device>default</device>
+    </audio>
+
+    <!-- 地胶：厚度 2mm PVC，摩擦系数按赛场地胶经验值 -->
+    <model name="floor">
+      <static>true</static>
+      <link name="floor_link">
+        <collision name="floor_col">
+          <geometry><box><size>28 15 0.004</size></box></geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>0.85</mu>
+                <mu2>0.85</mu2>
+                <slip1>0.0</slip1>
+                <slip2>0.0</slip2>
+                <fdir1>1 0 0</fdir1>
+              </ode>
+              <torsional>
+                <coefficient>0.85</coefficient>
+                <patch_radius>0.02</patch_radius>
+              </torsional>
+            </friction>
+            <contact>
+              <ode>
+                <kp>1e6</kp>
+                <kd>1e2</kd>
+                <max_vel>0.01</max_vel>
+                <min_depth>0.0001</min_depth>
+              </ode>
+            </contact>
+          </surface>
+        </collision>
+        <visual name="floor_vis">
+          <geometry><box><size>28 15 0.004</size></box></geometry>
+          <material>
+            <ambient>0.93 0.90 0.86 1</ambient>
+            <diffuse>0.93 0.90 0.86 1</diffuse>
+            <specular>0.05 0.05 0.05 1</specular>
+          </material>
+        </visual>
+      </link>
+      <plugin name="ground_plane" filename="gz-sim-ground-plane-system"/>
+    </model>
+
+    <!-- 围挡：上边沿距地面 2400mm，钢制 -->
+    <model name="barrier">
+      <static>true</static>
+      <link name="barrier_link">
+        <collision name="barrier_col">
+          <geometry><box><size>28.2 15.2 2.4</size></box></geometry>
+          <surface><friction><ode><mu>0.4</mu><mu2>0.4</mu2></ode></friction></surface>
+        </collision>
+        <visual name="barrier_vis">
+          <geometry><box><size>28.2 15.2 2.4</size></box></geometry>
+          <material>
+            <ambient>0.10 0.10 0.10 1</ambient>
+            <diffuse>0.12 0.12 0.12 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <!-- 仅外表面参与碰撞：用四个薄板替代空心盒 -->
+      <link name="wall_n">
+        <pose>0 7.6 1.2 0 0 0</pose>
+        <collision name="c"><geometry><box><size>28.2 0.1 2.4</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>28.2 0.1 2.4</size></box></geometry>
+          <material><ambient>0.10 0.10 0.10 1</ambient><diffuse>0.12 0.12 0.12 1</diffuse></material>
+        </visual>
+      </link>
+      <link name="wall_s">
+        <pose>0 -7.6 1.2 0 0 0</pose>
+        <collision name="c"><geometry><box><size>28.2 0.1 2.4</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>28.2 0.1 2.4</size></box></geometry>
+          <material><ambient>0.10 0.10 0.10 1</ambient><diffuse>0.12 0.12 0.12 1</diffuse></material>
+        </visual>
+      </link>
+      <link name="wall_e">
+        <pose>14.1 0 1.2 0 0 0</pose>
+        <collision name="c"><geometry><box><size>0.1 15.2 2.4</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.1 15.2 2.4</size></box></geometry>
+          <material><ambient>0.10 0.10 0.10 1</ambient><diffuse>0.12 0.12 0.12 1</diffuse></material>
+        </visual>
+      </link>
+      <link name="wall_w">
+        <pose>-14.1 0 1.2 0 0 0</pose>
+        <collision name="c"><geometry><box><size>0.1 15.2 2.4</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.1 15.2 2.4</size></box></geometry>
+          <material><ambient>0.10 0.10 0.10 1</ambient><diffuse>0.12 0.12 0.12 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 中央高地 +200mm，5000 x 2000 -->
+    <model name="central_platform">
+      <static>true</static>
+      <pose>0 0 0.1 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>5 2 0.2</size></box></geometry>
+          <surface><friction><ode><mu>0.85</mu><mu2>0.85</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><box><size>5 2 0.2</size></box></geometry>
+          <material><ambient>0.72 0.68 0.60 1</ambient><diffuse>0.78 0.74 0.66 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 能量机关立柱 x2，间距 2200mm，直径约 300mm，高约 1200mm -->
+    <model name="energy_pillar_red">
+      <static>true</static>
+      <pose>1.1 0 0.6 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><cylinder><radius>0.15</radius><length>1.2</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.6</mu><mu2>0.6</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><cylinder><radius>0.15</radius><length>1.2</length></cylinder></geometry>
+          <material><ambient>0.85 0.15 0.15 1</ambient><diffuse>0.85 0.15 0.15 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="energy_pillar_blue">
+      <static>true</static>
+      <pose>-1.1 0 0.6 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><cylinder><radius>0.15</radius><length>1.2</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.6</mu><mu2>0.6</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><cylinder><radius>0.15</radius><length>1.2</length></cylinder></geometry>
+          <material><ambient>0.15 0.4 0.85 1</ambient><diffuse>0.15 0.4 0.85 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 梯形高地 R3：最高 +400mm，斜坡从地面起坡 -->
+    <model name="ramp_r3">
+      <static>true</static>
+      <pose>-7.6 2.5 0 0 0 0</pose>
+      <link name="base">
+        <collision name="c"><geometry><box><size>5.6 2.4 0.4</size></box></geometry>
+          <surface><friction><ode><mu>0.85</mu><mu2>0.85</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><box><size>5.6 2.4 0.4</size></box></geometry>
+          <material><ambient>0.72 0.68 0.60 1</ambient><diffuse>0.78 0.74 0.66 1</diffuse></material>
+        </visual>
+      </link>
+      <link name="ramp">
+        <pose>-2.8 0 0.2 0 -0.114 0</pose>
+        <collision name="c"><geometry><box><size>5.6 2.4 0.02</size></box></geometry>
+          <surface><friction><ode><mu>0.85</mu><mu2>0.85</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><box><size>5.6 2.4 0.02</size></box></geometry>
+          <material><ambient>0.72 0.68 0.60 1</ambient><diffuse>0.78 0.74 0.66 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 公路区平台 +70mm -->
+    <model name="road_platform">
+      <static>true</static>
+      <pose>6.3 2.9 0.035 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>7 2.6 0.07</size></box></geometry>
+          <surface><friction><ode><mu>0.8</mu><mu2>0.8</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><box><size>7 2.6 0.07</size></box></geometry>
+          <material><ambient>0.80 0.78 0.73 1</ambient><diffuse>0.85 0.83 0.78 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 隧道：800 x 250 贯通口，顶盖 +400mm，用于穿越/跨越增益判定 -->
+    <model name="tunnel">
+      <static>true</static>
+      <pose>6.3 3.6 0.4 0 0 0</pose>
+      <link name="top">
+        <collision name="c"><geometry><box><size>5 0.8 0.05</size></box></geometry>
+          <surface><friction><ode><mu>0.6</mu><mu2>0.6</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><box><size>5 0.8 0.05</size></box></geometry>
+          <material><ambient>0.60 0.58 0.54 1</ambient><diffuse>0.66 0.64 0.60 1</diffuse></material>
+        </visual>
+      </link>
+      <link name="side_n">
+        <pose>0 0.4 0 0 0 0</pose>
+        <collision name="c"><geometry><box><size>5 0.05 0.4</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>5 0.05 0.4</size></box></geometry>
+          <material><ambient>0.60 0.58 0.54 1</ambient><diffuse>0.66 0.64 0.60 1</diffuse></material>
+        </visual>
+      </link>
+      <link name="side_s">
+        <pose>0 -0.4 0 0 0 0</pose>
+        <collision name="c"><geometry><box><size>5 0.05 0.4</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>5 0.05 0.4</size></box></geometry>
+          <material><ambient>0.60 0.58 0.54 1</ambient><diffuse>0.66 0.64 0.60 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 红方基地 5000HP + 150 护盾，装甲可受击 -->
+    <model name="base_red">
+      <static>true</static>
+      <pose>10.9 0 0 0 0 0</pose>
+      <link name="body">
+        <collision name="c"><geometry><box><size>2.4 3 1.2</size></box></geometry>
+          <surface><friction><ode><mu>0.6</mu><mu2>0.6</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><box><size>2.4 3 1.2</size></box></geometry>
+          <material><ambient>0.80 0.18 0.18 1</ambient><diffuse>0.85 0.22 0.22 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 蓝方基地 -->
+    <model name="base_blue">
+      <static>true</static>
+      <pose>-10.9 0 0 0 0 0</pose>
+      <link name="body">
+        <collision name="c"><geometry><box><size>2.4 3 1.2</size></box></geometry>
+          <surface><friction><ode><mu>0.6</mu><mu2>0.6</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><box><size>2.4 3 1.2</size></box></geometry>
+          <material><ambient>0.18 0.38 0.80 1</ambient><diffuse>0.22 0.44 0.85 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 前哨站 1500HP，含飞镖检测模块贴纸面 -->
+    <model name="outpost_red">
+      <static>true</static>
+      <pose>6.8 0 0 0 0 0</pose>
+      <link name="body">
+        <collision name="c"><geometry><box><size>1.6 1.6 1.0</size></box></geometry>
+          <surface><friction><ode><mu>0.6</mu><mu2>0.6</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><box><size>1.6 1.6 1.0</size></box></geometry>
+          <material><ambient>0.60 0.58 0.54 1</ambient><diffuse>0.66 0.64 0.60 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="outpost_blue">
+      <static>true</static>
+      <pose>-6.8 0 0 0 0 0</pose>
+      <link name="body">
+        <collision name="c"><geometry><box><size>1.6 1.6 1.0</size></box></geometry>
+          <surface><friction><ode><mu>0.6</mu><mu2>0.6</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><box><size>1.6 1.6 1.0</size></box></geometry>
+          <material><ambient>0.60 0.58 0.54 1</ambient><diffuse>0.66 0.64 0.60 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 飞镖发射站 -->
+    <model name="dart_station_red">
+      <static>true</static>
+      <pose>12 4.2 0 0 0 0</pose>
+      <link name="body">
+        <collision name="c"><geometry><box><size>1.6 1.4 1.0</size></box></geometry>
+          <surface><friction><ode><mu>0.6</mu><mu2>0.6</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><box><size>1.6 1.4 1.0</size></box></geometry>
+          <material><ambient>0.80 0.18 0.18 1</ambient><diffuse>0.85 0.22 0.22 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="dart_station_blue">
+      <static>true</static>
+      <pose>-12 4.2 0 0 0 0</pose>
+      <link name="body">
+        <collision name="c"><geometry><box><size>1.6 1.4 1.0</size></box></geometry>
+          <surface><friction><ode><mu>0.6</mu><mu2>0.6</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><box><size>1.6 1.4 1.0</size></box></geometry>
+          <material><ambient>0.18 0.38 0.80 1</ambient><diffuse>0.22 0.44 0.85 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 补给区 / 资源站（6 个能量单元） -->
+    <model name="supply_red">
+      <static>true</static>
+      <pose>4.5 -4 0 0 0 0</pose>
+      <link name="body">
+        <collision name="c"><geometry><box><size>2.4 1.6 0.6</size></box></geometry>
+          <surface><friction><ode><mu>0.7</mu><mu2>0.7</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><box><size>2.4 1.6 0.6</size></box></geometry>
+          <material><ambient>0.72 0.85 0.72 1</ambient><diffuse>0.78 0.90 0.78 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="supply_blue">
+      <static>true</static>
+      <pose>-4.5 -4 0 0 0 0</pose>
+      <link name="body">
+        <collision name="c"><geometry><box><size>2.4 1.6 0.6</size></box></geometry>
+          <surface><friction><ode><mu>0.7</mu><mu2>0.7</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><box><size>2.4 1.6 0.6</size></box></geometry>
+          <material><ambient>0.72 0.85 0.72 1</ambient><diffuse>0.78 0.90 0.78 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 装配区 / 科技核心 -->
+    <model name="assembly_red">
+      <static>true</static>
+      <pose>3.5 4.9 0 0 0 0</pose>
+      <link name="body">
+        <collision name="c"><geometry><box><size>2 1.2 0.6</size></box></geometry>
+          <surface><friction><ode><mu>0.7</mu><mu2>0.7</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><box><size>2 1.2 0.6</size></box></geometry>
+          <material><ambient>0.85 0.80 0.68 1</ambient><diffuse>0.90 0.86 0.74 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="assembly_blue">
+      <static>true</static>
+      <pose>-3.5 4.9 0 0 0 0</pose>
+      <link name="body">
+        <collision name="c"><geometry><box><size>2 1.2 0.6</size></box></geometry>
+          <surface><friction><ode><mu>0.7</mu><mu2>0.7</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><box><size>2 1.2 0.6</size></box></geometry>
+          <material><ambient>0.85 0.80 0.68 1</ambient><diffuse>0.90 0.86 0.74 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 无线充电区 -->
+    <model name="wireless_charge_red">
+      <static>true</static>
+      <pose>9.5 4.6 0 0 0 0</pose>
+      <link name="body">
+        <collision name="c"><geometry><box><size>1.8 1.4 0.4</size></box></geometry>
+          <surface><friction><ode><mu>0.7</mu><mu2>0.7</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><box><size>1.8 1.4 0.4</size></box></geometry>
+          <material><ambient>0.90 0.82 0.64 1</ambient><diffuse>0.94 0.88 0.72 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="wireless_charge_blue">
+      <static>true</static>
+      <pose>-9.5 4.6 0 0 0 0</pose>
+      <link name="body">
+        <collision name="c"><geometry><box><size>1.8 1.4 0.4</size></box></geometry>
+          <surface><friction><ode><mu>0.7</mu><mu2>0.7</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><box><size>1.8 1.4 0.4</size></box></geometry>
+          <material><ambient>0.90 0.82 0.64 1</ambient><diffuse>0.94 0.88 0.72 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 起伏路段 +70mm，表面凸起按规则以 heightmap 或离散圆柱表示 -->
+    <model name="rough_road">
+      <static>true</static>
+      <pose>9.8 1.4 0.035 0 0 0</pose>
+      <link name="body">
+        <collision name="c"><geometry><box><size>1.8 1.2 0.07</size></box></geometry>
+          <surface><friction><ode><mu>0.8</mu><mu2>0.8</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><box><size>1.8 1.2 0.07</size></box></geometry>
+          <material><ambient>0.66 0.64 0.60 1</ambient><diffuse>0.72 0.70 0.66 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 能量区 -->
+    <model name="energy_zone_red">
+      <static>true</static>
+      <pose>10.5 -2.8 0 0 0 0</pose>
+      <link name="body">
+        <collision name="c"><geometry><box><size>1.5 1.2 0.4</size></box></geometry>
+          <surface><friction><ode><mu>0.7</mu><mu2>0.7</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><box><size>1.5 1.2 0.4</size></box></geometry>
+          <material><ambient>0.90 0.78 0.78 1</ambient><diffuse>0.94 0.84 0.84 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="energy_zone_blue">
+      <static>true</static>
+      <pose>-10.5 -2.8 0 0 0 0</pose>
+      <link name="body">
+        <collision name="c"><geometry><box><size>1.5 1.2 0.4</size></box></geometry>
+          <surface><friction><ode><mu>0.7</mu><mu2>0.7</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><box><size>1.5 1.2 0.4</size></box></geometry>
+          <material><ambient>0.90 0.78 0.78 1</ambient><diffuse>0.94 0.84 0.84 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 启动区（蓝色方框），碰撞用薄台面表示 -->
+    <model name="start_zone_red">
+      <static>true</static>
+      <pose>10.9 -4.6 0 0 0 0</pose>
+      <link name="body">
+        <collision name="c"><geometry><box><size>2.2 1.6 0.02</size></box></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.9</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><box><size>2.2 1.6 0.02</size></box></geometry>
+          <material><ambient>0.85 0.83 0.80 1</ambient><diffuse>0.90 0.88 0.86 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="start_zone_blue">
+      <static>true</static>
+      <pose>-10.9 -4.6 0 0 0 0</pose>
+      <link name="body">
+        <collision name="c"><geometry><box><size>2.2 1.6 0.02</size></box></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.9</mu2></ode></friction></surface>
+        </collision>
+        <visual name="v"><geometry><box><size>2.2 1.6 0.02</size></box></geometry>
+          <material><ambient>0.85 0.83 0.80 1</ambient><diffuse>0.90 0.88 0.86 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 空中机器人机库（最大伸展 600x300x400mm，含起降平台） -->
+    <include>
+      <uri>model://rm2027_hangar</uri>
+      <name>hangar_red</name>
+      <pose>11.0 3.2 0 0 0 1.5708</pose>
+    </include>
+    <include>
+      <uri>model://rm2027_hangar</uri>
+      <name>hangar_blue</name>
+      <pose>-11.0 3.2 0 0 0 -1.5708</pose>
+    </include>
+
+    <!-- 示例：红方步兵机器人出生位（需另行提供机器人模型/插件） -->
+    <!--
+    <include>
+      <uri>model://rm2027_infantry</uri>
+      <name>infantry_red_1</name>
+      <pose>9.5 -3.5 0.15 0 0 0</pose>
+    </include>
+    -->
+
+    <plugin name="physics_logger" filename="gz-sim-physics-system"/>
+  </world>
+</sdf>
