@@ -10,6 +10,6 @@
 [submodule "third_party/sqrtVINS"]
 	path = third_party/sqrtVINS
 	url = git@github.com:abnormalvis/sqrtVINS.git
-[submodule "third_party/Prometheus"]
-	path = third_party/Prometheus
+[submodule "rm_drone_ros/src/Prometheus"]
+	path = rm_drone_ros/src/Prometheus
 	url = git@github.com:abnormalvis/Prometheus.git
