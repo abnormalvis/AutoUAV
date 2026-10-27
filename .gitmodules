@@ -1,0 +1,15 @@
+[submodule "rm_drone_ros/src/open_vins"]
+	path = rm_drone_ros/src/open_vins
+	url = git@github.com:abnormalvis/open_vins.git
+[submodule "rm_drone_ros/src/vision_to_mavros"]
+	path = rm_drone_ros/src/vision_to_mavros
+	url = git@github.com:abnormalvis/vision_to_mavros.git
+[submodule "third_party/Fast-Drone-250"]
+	path = third_party/Fast-Drone-250
+	url = git@github.com:abnormalvis/Fast-Drone-250.git
+[submodule "third_party/sqrtVINS"]
+	path = third_party/sqrtVINS
+	url = git@github.com:abnormalvis/sqrtVINS.git
+[submodule "third_party/Prometheus"]
+	path = third_party/Prometheus
+	url = git@github.com:abnormalvis/Prometheus.git
