@@ -1,3 +1,26 @@
-/rm_drone_ros/.px4ctrl_submodule_backup/
-/rm_drone_ros/.sqrtVINS-standalone-backup/
+# Reference checkouts only; not built by catkin and not tracked.
+/third_party/fast-drone-250_cxr/
+/third_party/raicom-air-recon-2026/
+/third_party/NMPC-QUA/
 /third_party/Prometheus/
+/third_party/RK3588-Vins-FUSION-EGO-Planner_C35/
+
+# XTDrone SITL installer bundle (2.7 GB): vendored PX4 v1.13.2 sources, Gazebo
+# models and a GeographicLib geoid set. Vendored installer payload, not our code;
+# re-fetch it with the XTDrone installer rather than tracking it.
+/rm_drone_sim/
+
+# Archived sp_vision_25 checkout (394 MB git clone). Only its detection core is
+# used, and that is vendored into perception/armor_perception/thirdparty/sp_vision
+# at a pinned commit with every change recorded. Keep ob_ws/docs tracked; the
+# upstream clone itself is re-fetchable and must not be.
+/ob_ws/src/
+
+# SchurVINS evaluation workspace: third-party catkin clones (ethz-asl / uzh-rpg
+# dependency set) plus 270 MB of build output. Re-create it from
+# Schurvins/dependencies.yaml when SchurVINS is evaluated; do not track it.
+/svo_ws/
+
+# Core dumps
+core
+core.*

@@ -95,11 +95,7 @@ target_link_libraries(offboard_planner_tracker_node
   ${catkin_LIBRARIES}
 )
 
-add_executable(vins_odometry_adapter src/node/vins_odometry_adapter.cpp)
-add_dependencies(vins_odometry_adapter ${catkin_EXPORTED_TARGETS})
-target_link_libraries(vins_odometry_adapter ${catkin_LIBRARIES})
-
-install(TARGETS offboard_planner_tracker_node vins_odometry_adapter
+install(TARGETS offboard_planner_tracker_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
