@@ -1,0 +1,78 @@
+# armor_perception -- Gazebo SITL profile (iris_vio camera, ground-truth odometry
+# or OpenVINS).
+#
+# Two consumers read this file:
+#   * the sp_vision detector reads its own keys (threshold, ratios, ...)
+#     directly from the path given by ~detector_config;
+#   * the node reads everything else as private parameters, because the launch
+#     file also does `rosparam load` of this file into the node namespace.
+
+# ---------------------------------------------------------------- detector
+threshold: 150              # gray level 0-255; the SITL plate uses emissive material
+max_angle_error: 45         # deg, light bar tilt away from vertical
+min_lightbar_ratio: 1.5     # light bar height / width
+max_lightbar_ratio: 20
+min_lightbar_length: 8      # px -- this, not the algorithm, sets the detection range
+min_armor_ratio: 1          # light bar separation / light bar height
+max_armor_ratio: 5
+max_side_ratio: 1.5
+max_rectangular_error: 25   # deg
+min_confidence: 0.8
+
+# The SITL plate has no readable digit, and the classifier would need a model
+# file. Geometry alone is enough here; turn this on once a real plate with a
+# real digit is in front of the camera.
+use_classifier: false
+# save_patterns: /tmp/armor_patterns   # uncomment to dump rejected crops
+
+# ------------------------------------------------------------ plate geometry
+# Distance between light bar centres (upstream sp_vision's solver constants).
+# The SITL model in models/armor_plate must be built to these numbers.
+lightbar_length: 0.056      # m
+small_armor_width: 0.135    # m
+big_armor_width: 0.230      # m
+
+# ---------------------------------------------------------------- extrinsics
+# T_base_camera. cam_xyz is the camera origin in base_link (iris_vio puts
+# camera_link at x=+0.1). The camera axes default to the Gazebo sensor
+# convention (+X fwd, +Y left, +Z up); the node applies the optical-frame
+# rotation itself. Override with R_base_camera (9 values, row-major) if the
+# camera is mounted rotated.
+cam_xyz: [0.1, 0.0, 0.0]
+# cam_rpy_deg: [0.0, 0.0, 0.0]
+
+# Fallback intrinsics, used only until /camera/left/camera_info arrives.
+# Gazebo iris_vio: 848x480, HFOV 1.5009831567 rad, zero distortion.
+camera_matrix: [455.4, 0.0, 424.0,
+                0.0, 455.4, 240.0,
+                0.0, 0.0, 1.0]
+
+# ------------------------------------------------------------------ odometry
+max_odom_age: 0.05          # s; image newer than this => drop the frame
+odom_capacity: 200
+fallback_odom_frame: world  # used only if odometry carries no frame_id
+
+# ------------------------------------------------------------------- tracker
+min_detect_count: 5         # consecutive detections before TRACKING
+max_temp_lost_count: 15     # consecutive misses before giving up
+association_radius: 0.5     # m
+
+# Constant-velocity filter. accel_noise is deliberately small: the plate is
+# static, and a large value lets the filter chase PnP jitter.
+accel_noise: 0.05           # m^2/s^3
+min_measurement_std: 0.005  # m
+yaw_time_constant: 0.2      # s
+max_consecutive_jumps: 5
+jump_threshold: 1.0         # m
+
+# --------------------------------------------------------- observation point
+# 1.5 m: at fx=455 the light bar is ~17 px tall, lateral PnP accuracy is good,
+# and the plate fills a comfortable part of the frame.
+standoff: 1.5               # m
+min_standoff: 0.8           # m, hard floor -- never command closer than this
+max_standoff: 3.0           # m
+max_normal_range: 6.0       # m, beyond this the plate normal is not trusted
+
+# Phase hand-off thresholds.
+observe_position_std: 0.05  # m, TRACKING -> OBSERVE
+normal_trusted_std: 0.15    # m, below this the normal drives the observation point

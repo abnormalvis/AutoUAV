@@ -1,0 +1,30 @@
+<launch>
+  <!-- armor_perception for the Gazebo SITL (iris_vio camera).
+
+       Prerequisites (this file does NOT start them):
+         /camera/left/image_raw, /camera/left/camera_info   iris_vio model
+         /localization/odometry                             vins_mavros_bridge
+         /vins_mavros_bridge/valid                          latched bool
+
+       Publishes, and nothing else:
+         /perception/armor_targets        armor_perception/ArmorTargetArray
+         /perception/target_pose          PoseWithCovarianceStamped
+         /perception/observation_point    PoseStamped
+         /perception/task_state           std_msgs/String, latched
+         /perception/debug_image          sensor_msgs/Image (publish_debug:=true)
+
+       It never writes /position_cmd. One trajectory producer at a time: the
+       mission layer is the only thing allowed to publish there.
+  -->
+  <arg name="config" default="$(find armor_perception)/config/uav_sitl.yaml"/>
+  <arg name="publish_debug" default="false"/>
+
+  <node pkg="armor_perception" type="armor_perception_node" name="armor_perception"
+        output="screen" respawn="false">
+    <!-- Loads detector keys (threshold, ratios, ...) as well as the node's own
+         parameters; the detector separately re-reads the file from its path. -->
+    <rosparam command="load" file="$(arg config)"/>
+    <param name="detector_config" value="$(arg config)"/>
+    <param name="publish_debug" value="$(arg publish_debug)"/>
+  </node>
+</launch>

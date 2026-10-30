@@ -1,0 +1,24 @@
+<launch>
+  <!-- Hardware variant. Everything is a parameter because the OV9281 body
+       camera's intrinsics, extrinsics and lens are not fixed yet.
+
+       Before running this on hardware:
+         * the five `perception/ov_*` symlinks in rm_drone_ros/src/perception
+           currently dangle (they point at ../open_vins/, which does not
+           exist); repoint them at third_party/open_vins/* or OpenVINS will not
+           build;
+         * measure T_base_camera and fill in cam_xyz / cam_rpy_deg -- the
+           defaults below are the SITL values and are wrong for hardware;
+         * intrinsics are read from camera_info at runtime. OV9281 lenses have
+           strong distortion, so a YAML fallback is not a substitute.
+  -->
+  <arg name="config" default="$(find armor_perception)/config/uav_real.yaml"/>
+  <arg name="publish_debug" default="false"/>
+
+  <node pkg="armor_perception" type="armor_perception_node" name="armor_perception"
+        output="screen" respawn="false">
+    <rosparam command="load" file="$(arg config)"/>
+    <param name="detector_config" value="$(arg config)"/>
+    <param name="publish_debug" value="$(arg publish_debug)"/>
+  </node>
+</launch>

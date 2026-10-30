@@ -1,0 +1,22 @@
+<launch>
+  <!-- Chain self-check without Gazebo: synthetic camera stream at a known
+       plate pose, real detector and solver, assert the published pose.
+
+       Run with:
+         rostest armor_perception synthetic_chain.test
+
+       This exercises the whole path -- cv_bridge, timestamp alignment,
+       T_world_camera composition, PnP, the tracker state machine -- and fails
+       loudly if the optical-frame convention is wrong, which is the one error
+       that leaves detection looking perfectly healthy.
+  -->
+  <node pkg="armor_perception" type="armor_perception_node" name="armor_perception"
+        output="screen">
+    <rosparam command="load" file="$(find armor_perception)/config/uav_sitl.yaml"/>
+    <param name="detector_config" value="$(find armor_perception)/config/uav_sitl.yaml"/>
+    <param name="publish_debug" value="false"/>
+  </node>
+
+  <test test-name="synthetic_chain" pkg="armor_perception" type="synthetic_chain_test.py"
+        time-limit="60.0"/>
+</launch>
