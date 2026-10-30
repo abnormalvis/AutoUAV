@@ -1,0 +1,87 @@
+<?xml version="1.0"?>
+<!--
+  Static RoboMaster armor plate for perception SITL.
+
+  Geometry is chosen to match armor_perception's solver object points exactly,
+  because a mismatch shows up as a systematic depth error that looks like a bad
+  calibration:
+
+    light bar height        56 mm   (LIGHTBAR_LENGTH)
+    light bar centre span  135 mm   (SMALL_ARMOR_WIDTH)
+
+  Note on the span: sp_vision's object points are the light bars' top/bottom
+  midpoints, so its 135 mm is centre-to-centre, not the outer width of the real
+  plate. The model follows sp_vision so that the SITL check validates the code
+  path that will run on hardware. If the real plate is later measured as 135 mm
+  outer, change both this file and uav_sitl.yaml together.
+
+  The light bars are <emissive> rather than lit by the scene. The detector
+  thresholds at gray 150 and finds contours (detector.cpp), which only works if
+  the bars are the brightest thing in frame regardless of the world's lights.
+
+  Frame convention: the model's +X is the plate's outward normal, +Z is up,
+  which is also armor_perception's armor frame. Placing the model with yaw 0
+  makes the plate face +X.
+-->
+<sdf version="1.6">
+  <model name="armor_plate">
+    <static>true</static>
+
+    <link name="plate">
+      <!-- Backing board: dark, so the bars are the only bright thing. -->
+      <visual name="board">
+        <geometry>
+          <box>
+            <size>0.008 0.170 0.090</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.05 0.05 0.06 1</ambient>
+          <diffuse>0.05 0.05 0.06 1</diffuse>
+          <specular>0.02 0.02 0.02 1</specular>
+        </material>
+      </visual>
+
+      <!-- Left light bar (observer's left, i.e. +Y since +X faces the viewer). -->
+      <visual name="lightbar_left">
+        <pose>0.006 0.0675 0 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.006 0.018 0.056</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>1 1 1 1</ambient>
+          <diffuse>1 1 1 1</diffuse>
+          <emissive>1 1 1 1</emissive>
+          <specular>0 0 0 1</specular>
+        </material>
+      </visual>
+
+      <!-- Right light bar. -->
+      <visual name="lightbar_right">
+        <pose>0.006 -0.0675 0 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.006 0.018 0.056</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>1 1 1 1</ambient>
+          <diffuse>1 1 1 1</diffuse>
+          <emissive>1 1 1 1</emissive>
+          <specular>0 0 0 1</specular>
+        </material>
+      </visual>
+
+      <!-- Small collision volume so the plate is a real obstacle. -->
+      <collision name="collision">
+        <geometry>
+          <box>
+            <size>0.008 0.170 0.090</size>
+          </box>
+        </geometry>
+      </collision>
+    </link>
+  </model>
+</sdf>
