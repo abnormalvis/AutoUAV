@@ -1,9 +1,7 @@
 # sitl_offboard
 
 ROS 1 launch and script entry points for wiring OpenVINS, MAVROS, EGO-Planner,
-and `px4ctrl` into a PX4 SITL / Gazebo Classic simulation. It also contains an
-opt-in Prometheus basic-demo integration for exercising Prometheus command flow
-on the existing Iris SITL airframe.
+and `px4ctrl` into a PX4 SITL / Gazebo Classic simulation.
 
 ## Sensor baseline
 
@@ -27,8 +25,10 @@ IMU noise densities (also in `config/sitl_iris/kalibr_imu_chain.yaml`):
 gyro `1.7e-4 rad/s/√Hz`, accel `3.0e-3 m/s²/√Hz`. The per-sample Gazebo gaussian
 stddevs in the SDF are these densities scaled by `sqrt(200 Hz)`.
 
-Airframe: `PX4_SYS_AUTOSTART=10015` (iris quad-x), forced by
-`run_px4_sitl.sh` so the model-name -> airframe lookup is skipped.
+Airframe: `run_px4_sitl.sh` picks the right one for the PX4 version in use -
+`PX4_SYS_AUTOSTART=10015` (iris quad-x) on v1.14+, and the `iris` model name on
+v1.13, whose `rcS` does the airframe lookup by file name instead and ships
+`10016_iris` rather than `10015`. See the script header for why the two differ.
 
 ## Prerequisites
 
@@ -38,28 +38,63 @@ This renders `*.sdf.jinja` -> `*.sdf` in place (so `model://iris` resolves) and
 builds the PX4 Gazebo plugin `.so` files:
 
 ```bash
-cd /home/idris-24-04/px4_ws/PX4-Autopilot
-cmake -S Tools/simulation/gazebo-classic/sitl_gazebo-classic \
-      -B build/px4_sitl_default/build_gazebo-classic \
-      -DSEND_ODOMETRY_DATA=ON -DGENERATE_ROS_MODELS=ON
-cmake --build build/px4_sitl_default/build_gazebo-classic -j4
+source /opt/ros/noetic/setup.bash   # required: the plugins link geometry_msgs etc.
+export PX4_HOME=/path/to/PX4-Autopilot
+make -C "$PX4_HOME" px4_sitl_default sitl_gazebo -j4
 ```
-
-> The standalone `cmake` above is what this environment uses: it builds into
-> `build/px4_sitl_default/build_gazebo-classic/` (reusing the mavlink headers the
-> main PX4 build already generated there) and renders the SDFs in place. The
-> canonical `make px4_sitl sitl_gazebo-classic` also works, but only if the main
-> `build/px4_sitl_default` dir was configured with Gazebo found; this
-> environment's was not (`gazebo_DIR-NOTFOUND`).
 
 Verify:
 
 ```bash
-ls Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/iris/iris.sdf
-ls build/px4_sitl_default/build_gazebo-classic/libgazebo_*.so
+ls "$PX4_HOME"/Tools/sitl_gazebo/models/iris/iris.sdf                      # v1.13 and older
+ls "$PX4_HOME"/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/iris/iris.sdf  # v1.14+
+ls "$PX4_HOME"/build/px4_sitl_default/build_gazebo/libgazebo_*.so          # v1.13 and older
+ls "$PX4_HOME"/build/px4_sitl_default/build_gazebo-classic/libgazebo_*.so  # v1.14+
 ```
 
-`run_px4_sitl.sh` fails fast with these exact messages if either is missing.
+`run_px4_sitl.sh` and `sitl.launch` accept either layout: both the legacy
+(`Tools/sitl_gazebo` + `build_gazebo`) and the current one
+(`Tools/simulation/gazebo-classic/sitl_gazebo-classic` + `build_gazebo-classic`)
+are detected/placed on the search path. `run_px4_sitl.sh` fails fast with these
+exact messages if the SDFs or plugins are missing.
+
+**Sourcing ROS is not optional.** `sitl_gazebo` links against `geometry_msgs`,
+`nav_msgs` and `mavros_msgs`; without `/opt/ros/noetic/setup.bash` the external
+project fails at its configure step with
+`Could not find a package configuration file provided by "geometry_msgs"`.
+
+PX4 build prerequisites that a bare ROS container is missing (Ubuntu 20.04):
+
+```bash
+sudo apt-get install -y ninja-build bc python3-jinja2 python3-toml \
+                        python3-empy python3-packaging python3-jsonschema \
+                        python3-future libgstreamer1.0-dev \
+                        libgstreamer-plugins-base1.0-dev
+pip3 install --user kconfiglib pyros-genmsg
+```
+
+`bc` is not a build dependency: PX4's `etc/init.d-posix/rcS` calls it at
+runtime and dies with `rcS: 174: bc: not found` without it. `pyros-genmsg`
+provides `genmsg`, without which the uORB message generation fails. The
+GStreamer dev packages are needed by `gst_camera_plugin`; the build otherwise
+fails with `GSTREAMER_APP_LIBRARIES (ADVANCED)` set to NOTFOUND.
+
+MAVROS also needs the GeographicLib geoid dataset at runtime. Without it
+`mavros_node` aborts with `GeographicLib exception: File not readable
+/usr/share/GeographicLib/geoids/egm96-5.pgm`. The XTDrone bundle ships it:
+
+```bash
+sudo cp -r <xtdrone>/sources/GeographicLib/* /usr/share/GeographicLib/
+```
+
+If `PX4_Firmware` was copied out of the XTDrone installer rather than cloned,
+its `.git` has a different owner than the container user and every `git
+describe` fails with `detected dubious ownership`. That breaks PX4's git version
+header generation:
+
+```bash
+git config --global --add safe.directory "$PX4_HOME"
+```
 
 ### 2. Build and source the catkin workspace
 
@@ -68,66 +103,22 @@ flight stack is symlinked into the `planner/` and `controller/` categories from
 `third_party/Fast-Drone-250`, so a single build covers everything:
 
 ```bash
-cd /home/idris-24-04/uav_ws/src/rmUAV/rm_drone_ros
+cd <path-to-rmUAV>/rm_drone_ros
 source /opt/ros/noetic/setup.bash
-catkin_make -DCATKIN_WHITELIST_PACKAGES="ov_core;ov_msckf;ov_init;ov_data;ov_eval;vision_to_mavros;sitl_offboard;ego_planner;plan_env;path_searching;bspline_opt;traj_utils;quadrotor_msgs;px4ctrl;uav_utils;cmake_utils;offboard" -j4
+catkin_make -DCATKIN_WHITELIST_PACKAGES="ov_core;ov_msckf;ov_init;ov_data;ov_eval;vins_mavros_bridge;sitl_offboard;ego_planner;plan_env;path_searching;bspline_opt;traj_utils;quadrotor_msgs;px4ctrl;uav_utils;cmake_utils;offboard" -j4
 source devel/setup.bash
 ```
 
-The whitelist skips `d430_slam`/`apm_d430_bridge`, which still contain
-machine-specific absolute paths and are not part of this chain.
+The whitelist skips `apm_d430_bridge`/`px4_d430_bridge`, which still contain
+machine-specific absolute paths and are not part of this chain. `d430_slam` and
+the RealSense driver packages are excluded from the catkin build entirely (see
+the workspace README).
 
 Then confirm all of these resolve:
 
 ```bash
-for p in ego_planner px4ctrl quadrotor_msgs ov_msckf vision_to_mavros sitl_offboard mavros; do rospack find "$p"; done
+for p in ego_planner px4ctrl quadrotor_msgs ov_msckf vins_mavros_bridge sitl_offboard mavros; do rospack find "$p"; done
 ```
-
-### Prometheus basic demos on Iris SITL
-
-This is a software-interface/task-flow reproduction using the PX4 Iris airframe
-and the `iris_vio` Gazebo sensor model. It is **not** a P450 dynamics match or a
-hardware-flight validation. The Prometheus controller uses PX4 SITL local pose
-for control feedback and Gazebo ground truth only for its `odom_valid` gate; VIO
-is not part of this first pass.
-
-Build the required Prometheus packages and only the basic demo executables (the
-advanced SpireCV/gimbal demos remain excluded because their optional SDK is not
-needed here):
-
-```bash
-catkin_make \
-  -DCATKIN_WHITELIST_PACKAGES="prometheus_msgs;prometheus_gazebo;prometheus_uav_control;prometheus_demo;sitl_offboard" \
-  -DPROMETHEUS_DEMO_BUILD_ADVANCED=OFF -j4
-source devel/setup.bash
-```
-
-Start the simulation stack with one basic task selected:
-
-```bash
-roslaunch sitl_offboard prometheus_basic_sitl.launch demo:=enu_xyz_pos_control
-```
-
-Supported values for `demo` are `takeoff_land`, `enu_xyz_pos_control`,
-`body_xyz_pos_control`, and `circular_trajectory_control`. Before starting the
-task, verify `/uav1/mavros/state`, `/uav1/prometheus/state`, and
-`/uav1/prometheus/control_state`. The launcher waits without arming until an
-operator explicitly publishes GO:
-
-```bash
-rostopic pub -1 /prometheus/sitl_demo/go std_msgs/Empty "{}"
-```
-
-After GO, the SITL-only runner simulates the RC mode edges, arms, requests
-Prometheus `RC_POS_CONTROL` then `COMMAND_CONTROL`, commands the configured
-takeoff height, and starts the unmodified upstream demo. The selected demo then
-performs its own task and land command. Stop the launch with Ctrl-C on any
-unexpected movement; PX4 QGroundControl console/log output and Gazebo state are
-the authoritative checks.
-
-Do not use this runner on hardware. It injects fake RC input and automatically
-arms after GO. The separate Prometheus source package is built in this same
-catkin workspace; no joystick device or second setpoint publisher is launched.
 
 ## SITL bring-up sequence
 
@@ -146,7 +137,7 @@ This starts Gazebo Classic with the lightweight `worlds/indoor_room.sdf`
 `world:=$(rospack find sitl_offboard)/worlds/rm2027_gazebo/rm2027_arena_classic.world`.
 `sitl.launch` sets
 `GAZEBO_MODEL_PATH` / `GAZEBO_PLUGIN_PATH` itself via the `px4_src`/`px4_build`
-args (defaults point at `/home/idris-24-04/px4_ws/PX4-Autopilot`).
+args, which default to `$PX4_HOME` / `$PX4_BUILD_DIR`; export them first.
 
 The indoor world has simple box geometry and a small number of textured walls
 and obstacles to reduce Gazebo rendering load while retaining nearby visual
@@ -167,15 +158,72 @@ the connection with `rostopic echo -n 1 /mavros/state` once MAVROS is up.
 
 ```bash
 roslaunch sitl_offboard px4_vio_ctrl.launch \
-  fcu_url:=udp://:14540@127.0.0.1:14557 \
+  fcu_url:=udp://:14550@127.0.0.1:18570 \
   camera_topic:=/camera/left/image_raw \
   imu_topic:=/camera/imu \
   openvins_config:=$(rospack find sitl_offboard)/config/sitl_iris/estimator_config.yaml
 ```
 
+`fcu_url` must match the MAVROS-side UDP port PX4 opens for the GCS link
+(`18570` for instance 0, from `px4-rc.mavlink`). The PX4 v1.13 defaults
+`14557` belong to the offboard link and do not answer here.
+
 Verify `/mavros/state` (connected), `/ov_msckf/odomimu`, and
-`/mavros/vision_pose/pose` tracking it. For an isolated RC-free SITL run, add
+`/localization/odometry` tracking it. The bridge forwards the normalized estimate
+to `/mavros/vision_pose/pose` and to px4ctrl; the raw VIO topic is no longer
+consumed by anything downstream. For an isolated RC-free SITL run, add
 `enable_rc_free_takeoff:=true` to px4ctrl.
+
+If OpenVINS is not wanted yet, the same chain can be exercised against the
+simulator's ground-truth odometry. This proves the wiring without waiting for
+VIO to converge:
+
+```bash
+roslaunch vins_mavros_bridge bridge.launch \
+  config:=$(rospack find vins_mavros_bridge)/config/gazebo_groundtruth.yaml
+```
+
+Verified on this machine with that setup: bridge status `state=OK`,
+`input_rate_hz=50`, `/localization/odometry` in `world -> base_link`,
+`/mavros/vision_pose/pose` at 50 Hz, and px4ctrl consuming the estimate (it
+logs its `ODOM frequency seems lower than 100Hz` warning, which is the expected
+complaint for a 50 Hz source, and never `No odom!`).
+
+#### Fusing external vision in PX4 v1.13
+
+The chain above only *delivers* vision to MAVROS. PX4 does not fuse it until
+told to, and v1.13 uses a different parameter set from the one usually quoted
+for newer firmware. `EKF2_EV_CTRL` exists as a name but rejects writes on
+v1.13; the working pair is `EKF2_AID_MASK` + `EKF2_HGT_MODE`:
+
+```bash
+rosservice call /mavros/param/set "{param_id: EKF2_AID_MASK, value: {integer: 24}}"  # bit3 EV pos + bit4 EV yaw
+rosservice call /mavros/param/set "{param_id: EKF2_HGT_MODE, value: {integer: 3}}"   # height from vision
+```
+
+`AID_MASK` bit 0 is GPS, bit 3 external-vision position, bit 4 external-vision
+yaw, bit 6 external-vision velocity. Both calls return `success: True` and take
+effect within a few seconds. After that `/mavros/local_position/pose` follows
+`/localization/odometry` to within a few centimetres, which is the check that
+EKF2 is actually consuming this stream rather than dead-reckoning.
+
+**This parameter is latched at boot.** Setting `EKF2_AID_MASK` at runtime and
+then letting PX4 restart (or rebooting the FCU) silently reverts it. For a run
+that must survive a PX4 restart, seed the airframe's parameter file instead:
+
+```bash
+PARAM_FILE=$PX4_HOME/build/px4_sitl_default/tmp/rootfs/eeprom/parameters_10016
+# append/overwrite: EKF2_AID_MASK 24, EKF2_HGT_MODE 3,
+#                   COM_RC_IN_MODE 4, NAV_RCL_ACT 0
+```
+
+`COM_RC_IN_MODE 4` and `NAV_RCL_ACT 0` matter because there is no RC
+transmitter in SITL: with the defaults PX4 drops into `AUTO.RTL` on RC loss and
+refuses to arm. Those two are SITL-only; never carry them to a real airframe.
+
+The same values belong in the PX4 airframe/parameter file for real flight.
+`EKF2_EV_DELAY` and `EKF2_EV_POS_*` still need the measured camera-to-IMU
+extrinsic and the real vision latency - those are calibration, not defaults.
 
 ### 4. Take off
 
@@ -183,13 +231,22 @@ Verify `/mavros/state` (connected), `/ov_msckf/odomimu`, and
 rostopic pub -1 /px4ctrl/takeoff_land quadrotor_msgs/TakeoffLand "takeoff_land_cmd: 1"
 ```
 
-Wait for PX4 to report OFFBOARD/armed and the takeoff to finish.
+**Not yet verified end to end.** px4ctrl accepts the command, switches PX4 to
+OFFBOARD, arms, and then the vehicle disarms and falls back to `AUTO.LOITER`
+within about 5 s without climbing. The odometry side is not the cause - the
+bridge is at `state=OK` with `odom_data.v.norm()` near zero and EKF2 is
+tracking it, which are the preconditions px4ctrl checks. Suspects not yet
+excluded: the thrust mapping (`controller.resetThrustMapping()` needs a hover
+throttle estimate that SITL has no way to provide), and the `get_landed()`
+check against a Gazebo model that is spawned 0.3 m up. Treat takeoff in SITL as
+open work; everything up to and including "px4ctrl is receiving a valid
+estimate" is verified.
 
 ### 5. EGO-Planner
 
 ```bash
 roslaunch sitl_offboard ego_px4ctrl.launch \
-  odom_topic:=/ov_msckf/odomimu \
+  odom_topic:=/localization/odometry \
   camera_pose_topic:=/camera/pose \
   depth_topic:=/camera/depth/image_rect_raw
 ```
@@ -250,16 +307,18 @@ publisher concurrently with this tracker.
 ## Data flow and constraints
 
 ```text
-sim camera + IMU -> OpenVINS /ov_msckf/odomimu -> MAVROS /mavros/vision_pose/pose -> PX4 EKF2
-                                             -> EGO odometry -> B-spline -> PositionCommand
-sim depth + OpenVINS pose -------------------> EGO -> traj_server -> /position_cmd
-MAVROS estimator flags + altitude -----------------------------------------> bootstrap gate
+sim camera + IMU -> OpenVINS /ov_msckf/odomimu
+                 -> vins_mavros_bridge -> /localization/odometry
+                      |-> /mavros/vision_pose/pose -> PX4 EKF2
+                      |-> px4ctrl / EGO odometry -> B-spline -> PositionCommand
+sim depth + unified pose ----------------------> EGO -> traj_server -> /position_cmd
+MAVROS estimator flags + altitude -------------> bootstrap gate
 offboard_planner_tracker -> /mavros/setpoint_raw/local -> PX4 SITL
 ```
 
-- **EGO camera pose is the VIO odometry.** The included
+- **EGO camera pose is the unified odometry.** The included
   `advanced_param_exp.xml` sets `grid_map/pose_type = 2` (ODOMETRY), so the
-  depth-fusion camera pose comes from `~grid_map/odom` -> `/ov_msckf/odomimu`,
+  depth-fusion camera pose comes from `~grid_map/odom` -> `/localization/odometry`,
   not `/camera/pose`. That is consistent because `T_cam_imu = identity`.
   `/camera/pose` is a ground-truth cross-check (via `camera_pose_bridge.py`),
   and is also the topic EGO would use if switched to `pose_type = 1`.
@@ -274,9 +333,12 @@ offboard_planner_tracker -> /mavros/setpoint_raw/local -> PX4 SITL
   `px4ctrl`; there must be one active flight controller/setpoint source.
 - OpenVINS initializes on motion (`init_dyn_use: true`); the drone is stationary
   at spawn, so `/ov_msckf/odomimu` starts only after takeoff motion — expected.
+  `/localization/odometry` follows once the bridge has accepted
+  `recovery_frames` consecutive samples.
 - Frame alignment between OpenVINS `global` and Gazebo `world` (gravity-aligned
   z-up, possible yaw offset) is acceptable for first validation; document any
-  offset as a follow-up.
+  offset as a follow-up. The bridge publishes into `world` and keeps the input
+  world untouched, so a yaw offset shows up directly in the output.
 - **Camera optical-axis convention.** The Gazebo camera looks along `+X` (body
   forward), while OpenVINS's pinhole model treats `+Z` as the optical axis. The
   approved baseline uses `T_cam_imu = identity`; if VIO initializes with a
