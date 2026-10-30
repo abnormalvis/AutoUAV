@@ -175,5 +175,8 @@ a–d 都不需要飞行，可以先做完。
    把装甲板 pitch 硬编码为 ±15°（"装在竖直圆柱上"的假设），静止平板不成立。
 3. **数字分类默认关闭**（`use_classifier: false`）。SITL 的板没有可读数字，
    而分类器要拖一个模型文件进来。几何足够定位一块已知的板。
-4. **`perception/ov_*` 五个符号链接目前是悬空的**（指向不存在的 `../open_vins/`）。
-   上实机前必须重指向 `third_party/open_vins/*`，否则 OpenVINS 编不过。
+4. **`perception/ov_*` 五个符号链接指向 `../open_vins/`**，即 `rm_drone_ros/src/open_vins`
+   这个 submodule。它们此前是悬空的（checkout 被移到 `third_party/open_vins` 且
+   `.git/modules` 里的 `core.worktree` 未同步），现在已移回原路径并解析正常。
+   移动这些路径前先跑 `git submodule status`，它会把 `core.worktree` 与实际位置
+   不一致直接报出来。

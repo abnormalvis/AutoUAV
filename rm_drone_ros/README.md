@@ -43,8 +43,7 @@ rmUAV/
 │       │   └── cmake_utils -> ../../../third_party/Fast-Drone-250/...
 │       ├── simulation/
 │       │   └── sitl_offboard/    # SITL 模型、launch、config、脚本
-│       ├── open_vins/            # OpenVINS submodule
-│       └── Schurvins/            # SchurVINS submodule，含 CATKIN_IGNORE，见下文
+│       └── open_vins/            # OpenVINS submodule
 └── third_party/
     ├── Fast-Drone-250/           # 完整仓库；通过分类目录的符号链接暴露需要的包
     └── Prometheus/               # 参考源码，不在 catkin 源码空间内
@@ -143,13 +142,7 @@ rm_drone_ros/src/perception/armor_perception/build.sh --chain   # 端到端坐�
 ## 当前构建限制
 
 - `perception/d430_slam` 已加 `CATKIN_IGNORE`。其 CMake 和 ORB-SLAM3 初始化代码仍含旧设备上的 `/home/nvidia/...` 绝对路径，并依赖外部安装的 ORB-SLAM3、Pangolin 和特定 OpenCV 版本。该包是一个 RealSense D430 双目 ORB-SLAM3 节点，只发布 `PoseStamped`（`/d430_camera/pose`），不含速度；接入时用 `vins_mavros_bridge` 的 `input_mode: pose_stamped`。当前不参与构建。
-- `Schurvins/` 已加顶层 `CATKIN_IGNORE`。SchurVINS 依赖 `Schurvins/dependencies.yaml` 里那套 ethz-asl / uzh-rpg 包（`catkin_simple`、`eigen_catkin`、`eigen_checks`、`minkindr`、`gflags_catkin`、`glog_catkin`、`ceres_catkin`、`dbow2_catkin`、`opengv`、`fast_neon` 等），容器内一个都没有。不加忽略时 catkin 在 `svo_cmake` 配置阶段就失败，整个工作区（包括 `px4ctrl`）都编不出来。该文件在 submodule 内部，父仓库无法记录，新克隆需要手动创建一次：
-
-  ```bash
-  touch rm_drone_ros/src/Schurvins/CATKIN_IGNORE
-  ```
-
-  补齐依赖并开始评估 SchurVINS 后删除该文件。
+- SchurVINS 已不再作为本工作区的 submodule。它依赖 `dependencies.yaml` 里那套 ethz-asl / uzh-rpg 包（`catkin_simple`、`eigen_catkin`、`eigen_checks`、`minkindr`、`gflags_catkin`、`glog_catkin`、`ceres_catkin`、`dbow2_catkin`、`opengv`、`fast_neon` 等），且 `svo_cmake` 配置阶段失败会连带整个工作区编不出来。这些包现在放在**独立**的 `svo_ws/`（已被 `.gitignore` 排除）里评估，不参与 `rm_drone_ros` 构建。要接入时，把 `Schurvins` 作为包放回来，并让 `vins_mavros_bridge` 用 `vins_fusion.yaml` 那套适配（SchurVINS 派生自 VINS-Fusion，话题与 twist 参考系需按实际输出核对，不能直接假定一致）。
 - RealSense 驱动包（`realsense2_camera`、`realsense2_description`）的符号链接已移除，不再从本工作区构建。需要时由独立的 RealSense 工作区提供。
 - `ov_init` 和 `ov_msckf` 需要 Ceres Solver；未安装 `libceres-dev` 时 CMake 配置阶段会直接失败。
 - `communication/` 下的 `apm_d430_bridge`、`px4_d430_bridge` 仍含机器相关绝对路径，不参与主构建。
