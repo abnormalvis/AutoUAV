@@ -1,0 +1,9 @@
+<launch>
+  <!-- Generic entry point. Pick the adapter config for the VIO in use. -->
+  <arg name="config" default="$(find vins_mavros_bridge)/config/openvins.yaml" />
+
+  <node pkg="vins_mavros_bridge" type="vins_mavros_bridge_node" name="vins_mavros_bridge"
+        output="screen">
+    <rosparam command="load" file="$(arg config)" />
+  </node>
+</launch>

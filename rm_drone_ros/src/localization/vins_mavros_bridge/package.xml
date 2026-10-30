@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>vins_mavros_bridge</name>
+  <version>0.1.0</version>
+  <description>
+    Algorithm-agnostic VIO/VINS odometry bridge. Normalizes any VIO output
+    (nav_msgs/Odometry or PoseStamped) into a single local odometry interface and
+    optionally forwards it to MAVROS external vision.
+  </description>
+
+  <maintainer email="maintainer@example.com">rmUAV maintainers</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>message_generation</build_depend>
+  <depend>roscpp</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>tf2_ros</depend>
+  <exec_depend>message_runtime</exec_depend>
+</package>

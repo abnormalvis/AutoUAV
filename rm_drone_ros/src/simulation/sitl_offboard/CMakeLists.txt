@@ -9,14 +9,11 @@ catkin_install_python(PROGRAMS
   scripts/keyboard_goal.py
   scripts/camera_pose_bridge.py
   scripts/depth_mm_bridge.py
-  scripts/prometheus_truth_bridge.py
-  scripts/prometheus_sitl_demo.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 install(PROGRAMS
   scripts/run_px4_sitl.sh
-  scripts/run_prometheus_px4_sitl.sh
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

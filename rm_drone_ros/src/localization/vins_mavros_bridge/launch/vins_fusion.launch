@@ -1,0 +1,16 @@
+<launch>
+  <!-- VINS-Fusion adapter template. VINS-Fusion is not part of the catkin build
+       yet; this launch exists so the wiring is fixed before the source lands. -->
+  <arg name="input_topic" default="/vins_estimator/odometry" />
+  <arg name="config" default="$(find vins_mavros_bridge)/config/vins_fusion.yaml" />
+  <arg name="publish_vision_pose" default="true" />
+  <arg name="publish_mavros_odometry" default="false" />
+
+  <node pkg="vins_mavros_bridge" type="vins_mavros_bridge_node" name="vins_mavros_bridge"
+        output="screen">
+    <rosparam command="load" file="$(arg config)" />
+    <param name="input_topic" value="$(arg input_topic)" />
+    <param name="publish_vision_pose" value="$(arg publish_vision_pose)" />
+    <param name="publish_mavros_odometry" value="$(arg publish_mavros_odometry)" />
+  </node>
+</launch>

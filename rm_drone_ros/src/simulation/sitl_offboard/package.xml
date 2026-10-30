@@ -14,16 +14,12 @@
   <exec_depend>mavros</exec_depend>
   <exec_depend>nav_msgs</exec_depend>
   <exec_depend>ov_msckf</exec_depend>
-  <exec_depend>prometheus_demo</exec_depend>
-  <exec_depend>prometheus_gazebo</exec_depend>
-  <exec_depend>prometheus_msgs</exec_depend>
-  <exec_depend>prometheus_uav_control</exec_depend>
   <exec_depend>px4ctrl</exec_depend>
   <exec_depend>rviz</exec_depend>
   <exec_depend>rospy</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>
-  <exec_depend>vision_to_mavros</exec_depend>
+  <exec_depend>vins_mavros_bridge</exec_depend>
 
   <export/>
 </package>

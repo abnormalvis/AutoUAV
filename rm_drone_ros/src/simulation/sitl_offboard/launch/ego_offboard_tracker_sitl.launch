@@ -29,7 +29,7 @@
     <arg name="map_size_x_" value="30.0" />
     <arg name="map_size_y_" value="30.0" />
     <arg name="map_size_z_" value="4.0" />
-    <arg name="odometry_topic" value="/ov_msckf/odomimu" />
+    <arg name="odometry_topic" value="/localization/odometry" />
     <arg name="camera_pose_topic" value="/camera/pose" />
     <arg name="depth_topic" value="/camera/depth/image_rect_raw" />
     <arg name="cloud_topic" value="unused_cloud" />

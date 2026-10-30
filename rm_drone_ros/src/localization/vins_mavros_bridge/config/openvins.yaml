@@ -1,0 +1,50 @@
+# OpenVINS (/ov_msckf/odomimu) adapter.
+#
+# OpenVINS publishes:
+#   header.frame_id = "global", child_frame_id = "imu"
+#   twist.linear    = velocity in the IMU/body frame
+#                     (Propagator.cpp: quat_2_Rot(q_Gtoi) * v_iinG, and the
+#                      "vel in local frame" comments in ROS1Visualizer.cpp)
+#   twist.angular   = NOT estimated, the published values are placeholders
+#
+# Feeding this topic straight into px4ctrl or EGO-Planner (as the current SITL
+# launch does) hands them a body-frame velocity where they expect a world-frame
+# one. That mismatch is silent and shows up as hover drift.
+
+input_mode: odometry
+input_topic: /ov_msckf/odomimu
+input_child_frame: imu
+input_twist_frame: body
+input_twist_angular: false
+
+# Where the IMU sits in base_link: [x, y, z] metres, then roll/pitch/yaw in
+# degrees. These are placeholders. Measure them on the airframe before flight;
+# a non-zero error here biases every downstream controller without any warning.
+base_to_input_xyz: [0.0, 0.0, 0.0]
+base_to_input_rpy_deg: [0.0, 0.0, 0.0]
+
+world_frame: world
+body_frame: base_link
+
+odometry_topic: /localization/odometry
+publish_vision_pose: true
+publish_mavros_odometry: false
+publish_tf: false
+
+input_timeout: 0.5
+max_jump_m: 1.0
+max_jump_deg: 30.0
+jump_action: reject
+recovery_frames: 5
+
+output_rate: 0.0
+max_republish_age: 0.2
+path_rate: 1.0
+path_max_poses: 1000
+
+pose_covariance_floor: [0.0025, 0.0025, 0.0025, 0.0004, 0.0004, 0.0004]
+twist_covariance_floor: [0.01, 0.01, 0.01, 0.001, 0.001, 0.001]
+
+consistency_check: true
+px4_odom_topic: /mavros/local_position/odom
+consistency_tolerance: 1.0

@@ -6,8 +6,11 @@
   <arg name="openvins_config" default="$(find sitl_offboard)/config/sitl_iris/estimator_config.yaml" />
   <arg name="camera_topic" default="/camera/left/image_raw" />
   <arg name="imu_topic" default="/camera/imu" />
-  <arg name="odom_topic" default="/ov_msckf/odomimu" />
-  <arg name="vision_pose_topic" default="/mavros/vision_pose/pose" />
+  <arg name="raw_vio_topic" default="/ov_msckf/odomimu" />
+  <!-- Everything downstream (px4ctrl, EGO-Planner, MAVROS external vision)
+       consumes this single topic, never the raw VIO output. -->
+  <arg name="odom_topic" default="/localization/odometry" />
+  <arg name="bridge_config" default="$(find vins_mavros_bridge)/config/openvins.yaml" />
   <arg name="px4ctrl_config" default="$(find px4ctrl)/config/ctrl_param_fpv.yaml" />
   <arg name="enable_rc_free_takeoff" default="true" />
   <arg name="start_px4ctrl" default="true" />
@@ -30,10 +33,15 @@
     </include>
   </group>
 
-  <include file="$(find vision_to_mavros)/launch/openvins_to_mavros.launch">
-    <arg name="openvins_pose_topic" value="$(arg odom_topic)" />
-    <arg name="mavros_pose_topic" value="$(arg vision_pose_topic)" />
-  </include>
+  <!-- Normalizes the VIO output and publishes /localization/odometry plus
+       /mavros/vision_pose/pose. Replaces the previous direct
+       vision_to_mavros wiring, which forwarded body-frame velocity as if it
+       were world-frame and had no timeout or jump handling. -->
+  <node pkg="vins_mavros_bridge" type="vins_mavros_bridge_node" name="vins_mavros_bridge"
+        output="screen">
+    <rosparam command="load" file="$(arg bridge_config)" />
+    <param name="input_topic" value="$(arg raw_vio_topic)" />
+  </node>
 
   <group if="$(arg start_px4ctrl)">
     <node pkg="px4ctrl" type="px4ctrl_node" name="px4ctrl" output="screen">

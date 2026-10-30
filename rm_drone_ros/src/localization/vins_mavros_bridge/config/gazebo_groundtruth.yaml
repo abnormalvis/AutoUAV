@@ -1,0 +1,50 @@
+# Adapter for the SITL ground-truth odometry published by the iris_vio model's
+# p3d plugin (/camera/pose_odom).
+#
+# This is a wiring check, not a VIO: the estimate is Gazebo's perfect pose, so
+# it proves the bridge -> px4ctrl -> MAVROS chain without waiting for a real
+# estimator to converge. Do not use it to judge VIO quality.
+#
+# Differences from openvins.yaml, and why:
+#   - twist is already world-frame (p3d reports world velocity)
+#   - the child frame is the model body, so no imu->base_link extrinsic applies
+#   - the simulator spawns at z = 0.3 m and can be nudged by physics, so the
+#     jump limit is loosened; a 1 m limit would reject the initial settle
+#   - consistency_check compares against /mavros/local_position/odom, which
+#     stays near zero until EKF2_EV_CTRL fuses external vision, so it would
+#     fire constantly during bring-up
+
+input_mode: odometry
+input_topic: /camera/pose_odom
+input_child_frame: base_link
+input_twist_frame: world
+input_twist_angular: true
+
+base_to_input_xyz: [0.0, 0.0, 0.0]
+base_to_input_rpy_deg: [0.0, 0.0, 0.0]
+
+world_frame: world
+body_frame: base_link
+
+odometry_topic: /localization/odometry
+publish_vision_pose: true
+publish_mavros_odometry: false
+publish_tf: false
+
+input_timeout: 0.5
+max_jump_m: 10.0
+max_jump_deg: 90.0
+jump_action: reject
+recovery_frames: 5
+
+output_rate: 0.0
+max_republish_age: 0.2
+path_rate: 1.0
+path_max_poses: 1000
+
+pose_covariance_floor: [0.0025, 0.0025, 0.0025, 0.0004, 0.0004, 0.0004]
+twist_covariance_floor: [0.01, 0.01, 0.01, 0.001, 0.001, 0.001]
+
+consistency_check: false
+px4_odom_topic: /mavros/local_position/odom
+consistency_tolerance: 2.0
