@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>simple_offboard_forward</name>
+  <version>0.0.0</version>
+  <description>Simple MAVROS position setpoint node for a short forward Offboard move.</description>
+
+  <maintainer email="orangepi@example.com">orangepi</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>geometry_msgs</depend>
+  <depend>mavros_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>rospy</depend>
+  <depend>tf</depend>
+</package>

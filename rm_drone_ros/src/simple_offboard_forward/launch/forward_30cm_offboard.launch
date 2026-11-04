@@ -1,0 +1,36 @@
+<launch>
+  <arg name="odom_topic" default="/mavros/local_position/odom"/>
+  <arg name="state_topic" default="/mavros/state"/>
+  <arg name="setpoint_topic" default="/mavros/setpoint_position/local"/>
+  <arg name="play_tune_topic" default="/mavros/play_tune"/>
+
+  <arg name="forward_distance" default="0.30"/>
+  <arg name="forward_speed" default="0.08"/>
+  <arg name="start_delay" default="1.0"/>
+  <arg name="rate_hz" default="20.0"/>
+  <arg name="position_tolerance" default="0.05"/>
+  <arg name="enable_buzzer" default="true"/>
+
+  <node pkg="simple_offboard_forward"
+        type="forward_30cm_offboard.py"
+        name="forward_30cm_offboard"
+        output="screen">
+    <param name="odom_topic" value="$(arg odom_topic)"/>
+    <param name="state_topic" value="$(arg state_topic)"/>
+    <param name="setpoint_topic" value="$(arg setpoint_topic)"/>
+    <param name="play_tune_topic" value="$(arg play_tune_topic)"/>
+    <param name="forward_distance" value="$(arg forward_distance)" type="double"/>
+    <param name="forward_speed" value="$(arg forward_speed)" type="double"/>
+    <param name="start_delay" value="$(arg start_delay)" type="double"/>
+    <param name="rate_hz" value="$(arg rate_hz)" type="double"/>
+    <param name="position_tolerance" value="$(arg position_tolerance)" type="double"/>
+    <param name="enable_buzzer" value="$(arg enable_buzzer)" type="bool"/>
+
+    <!-- QBASIC1_1 tunes for MAVROS PlayTuneV2 format=1. -->
+    <param name="moving_long_tune" value="MFT120L4O5C"/>
+    <param name="moving_short_tune" value="MFT240L16O5C"/>
+    <param name="done_tune" value="MFT240L16O5C"/>
+    <param name="moving_tune_interval" value="1.0" type="double"/>
+    <param name="done_tune_interval" value="0.45" type="double"/>
+  </node>
+</launch>
