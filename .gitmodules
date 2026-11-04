@@ -1,5 +1,5 @@
 [submodule "rm_drone_ros/src/open_vins"]
-	path = catkin_ws/src/open_vins
+	path = catkin_ws/src/vendor/open_vins
 	url = git@github.com:abnormalvis/open_vins.git
 [submodule "third_party/Fast-Drone-250"]
 	path = third_party/Fast-Drone-250
