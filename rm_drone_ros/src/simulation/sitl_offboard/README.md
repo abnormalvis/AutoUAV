@@ -6,12 +6,14 @@ and `px4ctrl` into a PX4 SITL / Gazebo Classic simulation.
 ## Sensor baseline
 
 The `iris_vio` model (see `models/iris_vio/`) extends the stock PX4 Iris with a
-forward-facing sensor link `camera_link` (pose `0.1 0 0`, looking along +X). All
-four sensors are co-located on that link, so `T_cam_imu = identity`:
+forward-facing sensor link `camera_link` (pose `0.1 0 0`, looking along +X).
+The left camera and IMU share the link origin; the right camera is offset by
+60 mm along the stereo baseline:
 
 | Sensor | Plugin | Topic | Notes |
 |--------|--------|-------|-------|
-| RGB | `libgazebo_ros_camera.so` | `/camera/left/image_raw` | OpenVINS mono, 30 Hz |
+| Left RGB | `libgazebo_ros_camera.so` | `/camera/left/image_raw` | 848x480, 30 Hz |
+| Right RGB | `libgazebo_ros_camera.so` | `/camera/right/image_raw` | 848x480, 30 Hz, 60 mm baseline |
 | Depth | `libgazebo_ros_openni_kinect.so` | `/camera/depth/image_rect_raw` | 16UC1 mm, 15 Hz |
 | IMU | `libgazebo_ros_imu_sensor.so` | `/camera/imu` | 200 Hz |
 | Pose | `libgazebo_ros_p3d.so` | `/camera/pose_odom` | ground-truth Odometry, world frame |
@@ -154,7 +156,54 @@ rosrun sitl_offboard run_px4_sitl.sh
 PX4 connects to the iris_vio model's mavlink interface over TCP 4560. Confirm
 the connection with `rostopic echo -n 1 /mavros/state` once MAVROS is up.
 
-### 3. VIO -> PX4 EKF and px4ctrl
+### 3. VINS-Fusion -> PX4 EKF, EGO-Planner, and px4ctrl
+
+For the Fast-Drone-250 VINS-Fusion takeoff chain, the simulator uses the
+`iris_vio` camera and its direct Gazebo IMU topic with a mono SITL calibration
+(the hardware `fast_drone_250.yaml` expects a stereo RealSense and must not be
+used unchanged). Start MAVROS, VINS-Fusion, the bridge, EGO-Planner, and
+`px4ctrl` after PX4 is running:
+
+```bash
+export RMUAV_ROOT=/root/rw_uav/rmUAV
+export PX4_HOME="$RMUAV_ROOT/rm_drone_sim/src/XTDRone/sources/PX4_Firmware_13"
+export PX4_BUILD_DIR="$PX4_HOME/build/px4_sitl_default"
+
+source /opt/ros/noetic/setup.bash
+source "$RMUAV_ROOT/third_party/devel/setup.bash"
+source "$RMUAV_ROOT/rm_drone_ros/devel/setup.bash"
+
+export ROS_PACKAGE_PATH="$RMUAV_ROOT/rm_drone_ros/src:$RMUAV_ROOT/third_party/src:/opt/ros/noetic/share"
+export CMAKE_PREFIX_PATH="$RMUAV_ROOT/rm_drone_ros/devel:$RMUAV_ROOT/third_party/devel:/opt/ros/noetic"
+export LD_LIBRARY_PATH="$RMUAV_ROOT/rm_drone_ros/devel/lib:$RMUAV_ROOT/third_party/devel/lib:$LD_LIBRARY_PATH"
+roslaunch sitl_offboard px4_vins_fusion_ctrl.launch
+```
+
+The launch defaults to stereo VINS-Fusion using `/camera/left/image_raw`,
+`/camera/right/image_raw`, and `/camera/imu`, with a MAVROS UDP connection on
+port 18570 and RC-free SITL arming. The IMU is taken directly from Gazebo
+because the PX4 SITL instance does not publish `/mavros/imu/data_raw`. The
+virtual stereo pair has a 60 mm baseline and matching zero-distortion
+calibration. Change `fcu_url` if the PX4 instance uses another port. Confirm
+the VINS estimator initialized,
+`/vins_estimator/odometry` is live, and `/vins_mavros_bridge/valid` is true
+before takeoff. Stereo provides metric scale and uses VINS-Fusion's stereo-IMU
+initialization path, avoiding the monocular scale initialization dependency.
+Initialization still depends on usable stereo features and IMU data.
+To test the previous monocular setup, pass
+`vins_config:=$(rospack find sitl_offboard)/config/sitl_iris/vins_fusion_mono.yaml`.
+
+After `/mavros/state` is connected and `/localization/odometry` is updating,
+configure PX4 v1.13 to fuse external vision as described below, then issue the
+same command as `takeoff.sh`:
+
+```bash
+rostopic pub -1 /px4ctrl/takeoff_land quadrotor_msgs/TakeoffLand "takeoff_land_cmd: 1"
+```
+
+Do not start a second `px4ctrl` or another MAVROS instance.
+
+The existing OpenVINS launch remains available as a separate SITL chain:
 
 ```bash
 roslaunch sitl_offboard px4_vio_ctrl.launch \

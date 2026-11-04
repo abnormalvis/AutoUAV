@@ -1,0 +1,52 @@
+%YAML:1.0
+
+imu: 1
+num_of_cam: 1
+
+imu_topic: "/camera/imu"
+image0_topic: "/camera/left/image_raw"
+image1_topic: ""
+
+output_path: "/tmp"
+
+cam0_calib: "vins_fusion_mono_camera.yaml"
+image_width: 848
+image_height: 480
+
+# Initial body-to-camera transform for the iris_vio SDF. VINS-Fusion is
+# allowed to refine this estimate; this is only an SITL starting value.
+estimate_extrinsic: 1
+body_T_cam0: !!opencv-matrix
+   rows: 4
+   cols: 4
+   dt: d
+   data: [ 0., 0., 1., 0.1,
+          -1., 0., 0., 0.,
+           0., -1., 0., 0.,
+           0., 0., 0., 1. ]
+
+multiple_thread: 1
+
+max_cnt: 150
+min_dist: 20
+freq: 30
+F_threshold: 1.0
+show_track: 0
+flow_back: 1
+
+max_solver_time: 0.04
+max_num_iterations: 8
+keyframe_parallax: 10.0
+
+acc_n: 0.1
+gyr_n: 0.01
+acc_w: 0.001
+gyr_w: 0.0001
+g_norm: 9.81
+
+estimate_td: 0
+td: 0.0
+
+load_previous_pose_graph: 0
+pose_graph_save_path: "/tmp/vins_fusion_sitl_pose_graph/"
+save_image: 0
