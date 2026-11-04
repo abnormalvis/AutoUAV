@@ -77,7 +77,7 @@ R_optical_from_body = [[0, -1,  0],
 
 `/perception/task_state` 取值 `CRUISE` / `CAPTURE` / `OBSERVE` / `LOST_HOLD`。
 **感知节点不控制飞行**：由任务层决定飞巡航航点、飞观察点，还是原地保持。
-这样任一时刻只有一个轨迹生产者（`rm_drone_ros/README.md` 的既有约束）。
+这样任一时刻只有一个轨迹生产者（`catkin_ws/README.md` 的既有约束）。
 
 `LOST_HOLD` 的语义是在最后已知位置悬停，**不回退巡航**——回退会让状态在
 每个闪断之间来回切换。
@@ -92,10 +92,10 @@ R_optical_from_body = [[0, -1,  0],
 ./build.sh --chain    # 构建并跑端到端合成链路自检
 ```
 
-脚本在**独立**的 catkin 工作区里构建（容器内 `/tmp/ws`），不是 `rm_drone_ros` 本身。
+脚本在**独立**的 catkin 工作区里构建（容器内 `/tmp/ws`），不是 `catkin_ws` 本身。
 原因：整个工作区在当前镜像里配不通过——`communication/apm_d430_bridge`
 需要 `mavros_extras`，镜像里没装。本包只依赖核心 ROS 包，独立工作区足够，
-而且快得多。要把本包接进 `rm_drone_ros` 一起构建，先装
+而且快得多。要把本包接进 `catkin_ws` 一起构建，先装
 `ros-noetic-mavros-extras`。
 
 ## 验证
@@ -175,7 +175,7 @@ a–d 都不需要飞行，可以先做完。
    把装甲板 pitch 硬编码为 ±15°（"装在竖直圆柱上"的假设），静止平板不成立。
 3. **数字分类默认关闭**（`use_classifier: false`）。SITL 的板没有可读数字，
    而分类器要拖一个模型文件进来。几何足够定位一块已知的板。
-4. **`perception/ov_*` 五个符号链接指向 `../open_vins/`**，即 `rm_drone_ros/src/open_vins`
+4. **`vendor/ov_*` 五个符号链接指向 `open_vins/`**，即 `catkin_ws/src/vendor/open_vins`
    这个 submodule。它们此前是悬空的（checkout 被移到 `third_party/open_vins` 且
    `.git/modules` 里的 `core.worktree` 未同步），现在已移回原路径并解析正常。
    移动这些路径前先跑 `git submodule status`，它会把 `core.worktree` 与实际位置

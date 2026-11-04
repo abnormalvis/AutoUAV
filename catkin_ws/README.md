@@ -1,4 +1,4 @@
-# rm_drone_ros
+# catkin_ws
 
 本目录是项目唯一的 ROS 1/catkin 工作区。开发机与机载电脑应检出相同主仓库提交，并使用 Git 记录的 submodule 提交，以保证源码一致。
 
@@ -6,51 +6,34 @@
 
 ```text
 rmUAV/
-├── .gitmodules
-├── docs/
-│   └── uav_stack_integration_plan.md
-├── rm_drone_sim/
-│   └── src/
-│       └── XTDRONE_Installer_13_3.1/   # 仿真环境素材，被 .gitignore 排除
-├── rm_drone_ros/
-│   └── src/
-│       ├── perception/
-│       │   ├── armor_perception/ # 装甲板检测 → 世界系位姿 → 观察点
-│       │   ├── d430_slam/        # 含 CATKIN_IGNORE，见下文构建限制
-│       │   ├── ov_core -> ../open_vins/ov_core
-│       │   ├── ov_data -> ../open_vins/ov_data
-│       │   ├── ov_eval -> ../open_vins/ov_eval
-│       │   ├── ov_init -> ../open_vins/ov_init
-│       │   └── ov_msckf -> ../open_vins/ov_msckf
-│       ├── localization/
-│       │   └── vins_mavros_bridge/   # 统一 VIO 里程计接口
-│       ├── planner/
-│       │   ├── mission_planner/      # 显式触发的 PX4 航点任务基线
-│       │   ├── ego_planner -> ../../../third_party/Fast-Drone-250/...
-│       │   ├── plan_env -> ../../../third_party/Fast-Drone-250/...
-│       │   ├── path_searching -> ../../../third_party/Fast-Drone-250/...
-│       │   ├── bspline_opt -> ../../../third_party/Fast-Drone-250/...
-│       │   └── traj_utils -> ../../../third_party/Fast-Drone-250/...
-│       ├── controller/
-│       │   ├── offboard/         # 本项目 OFFBOARD 示例与 tracker
-│       │   └── px4ctrl -> ../../../third_party/Fast-Drone-250/...
-│       ├── communication/
-│       │   ├── apm_d430_bridge/
-│       │   └── px4_d430_bridge/
-│       ├── common/
-│       │   ├── quadrotor_msgs -> ../../../third_party/Fast-Drone-250/...
-│       │   ├── uav_utils -> ../../../third_party/Fast-Drone-250/...
-│       │   └── cmake_utils -> ../../../third_party/Fast-Drone-250/...
-│       ├── simulation/
-│       │   ├── fast_drone_realflight/ # Fast-Drone-250 实机 VIO/EGO/px4ctrl 接线
-│       │   └── sitl_offboard/    # SITL 模型、launch、config、脚本
-│       └── open_vins/            # OpenVINS submodule
-└── third_party/
-    ├── Fast-Drone-250/           # 完整仓库；通过分类目录的符号链接暴露需要的包
-    └── Prometheus/               # 参考源码，不在 catkin 源码空间内
+├── catkin_ws/src/              # 唯一 catkin 源码空间，只放 ROS 包与符号链接
+│   ├── localization/
+│   │   ├── vins_mavros_bridge/   # 统一 VIO 里程计接口
+│   │   └── vins_fusion/          # 指向 third_party/VINS-Fusion 的符号链接
+│   ├── planning/
+│   │   ├── mission_planner/      # 显式触发的 PX4 航点任务基线
+│   │   └── ego_planner, plan_env, path_searching, bspline_opt, traj_utils -> third_party/Fast-Drone-250
+│   ├── control/
+│   │   ├── offboard/             # 本项目 OFFBOARD 示例与 tracker
+│   │   ├── simple_offboard_forward/
+│   │   └── px4ctrl -> third_party/Fast-Drone-250
+│   ├── perception/
+│   │   ├── armor_perception/     # 装甲板检测 → 世界系位姿 → 观察点
+│   │   └── d430_slam/            # 含 CATKIN_IGNORE，见下文构建限制
+│   ├── communication/            # apm_d430_bridge、px4_d430_bridge
+│   ├── common/                   # quadrotor_msgs、uav_utils、cmake_utils -> Fast-Drone-250
+│   ├── simulation/               # sitl_offboard，以及旧的 fast_drone_realflight（见 docs/deploy.md）
+│   └── vendor/                   # open_vins submodule 及其 ov_* 符号链接
+├── config/                     # d430_schurvins/（SchurVINS 标定与 launch）、systemd/（单元与 env 示例）
+├── launch/                     # 根级入口，如 realflight_ego_vio_px4ctrl.launch
+├── scripts/                    # start_*.sh、check_chain.sh、install_systemd.sh、set_origin.py
+├── docs/                       # 部署、布局、集成计划等文档
+├── data/ bags/ logs/ tmp/      # 本地运行数据，被 .gitignore 排除
+├── third_party/                # Fast-Drone-250、VINS-Fusion 子模块；参考检出被忽略
+└── svo_ws/ ob_ws/ rm_drone_sim/ files/ models/   # SchurVINS 独立工作区、归档与素材
 ```
 
-类别目录仅用于组织 ROS 包，不改变 OpenVINS 原有包名、ROS topic/service 或第三方源码。OpenVINS 的源码 checkout 保留在原位置，五个 ROS 包通过 `perception/` 下的相对链接接入 catkin。Fast-Drone-250 的 EGO-Planner 依赖、`px4ctrl` 和公共工具包通过各职能目录下的相对符号链接参与构建。
+类别目录仅用于组织 ROS 包，不改变 OpenVINS 原有包名、ROS topic/service 或第三方源码。OpenVINS 的源码 checkout 位于 `vendor/open_vins`，五个 ROS 包通过 `vendor/` 下的相对链接接入 catkin。Fast-Drone-250 的 EGO-Planner 依赖、`px4ctrl` 和公共工具包通过各职能目录下的相对符号链接参与构建。
 
 `third_party/` 下的 `fast-drone-250_cxr`、`raicom-air-recon-2026`、`NMPC-QUA`、`Prometheus` 只作参考，已被 `.gitignore` 排除，不参与构建。
 
@@ -71,7 +54,7 @@ rmUAV/
 
 `mission_planner`、`px4ctrl` 和 `offboard` 中的 tracker 都可能向 PX4 请求模式或发送控制设定值。一次飞行只能启动一个飞控控制者；具体输入输出与 SITL 启动顺序见 `simulation/sitl_offboard/README.md`。
 
-Fast-Drone-250 实机 EGO-Planner 链路可用 `roslaunch fast_drone_realflight ego_vio_px4ctrl.launch localization:=openvins` 或 `localization:=schurvins` 启动。先单独启动 MAVROS、相机和所选 VIO；该入口负责启动对应桥接器、EGO-Planner 与 `px4ctrl`。详细顺序及验证项见 `simulation/fast_drone_realflight/README.md`。VINS-Fusion 用户仍可直接使用原 `single_run_in_exp.launch` 与 `run_ctrl.launch`，不改参数时保持原话题默认值。
+Fast-Drone-250 实机 EGO-Planner 链路可用 `roslaunch launch/realflight_ego_vio_px4ctrl.launch localization:=openvins`（在仓库根目录执行） 或 `localization:=schurvins` 启动。先单独启动 MAVROS、相机和所选 VIO；该入口负责启动对应桥接器、EGO-Planner 与 `px4ctrl`。详细顺序及验证项见 `simulation/fast_drone_realflight/README.md`。VINS-Fusion 用户仍可直接使用原 `single_run_in_exp.launch` 与 `run_ctrl.launch`，不改参数时保持原话题默认值。
 
 ### 感知接口
 
@@ -88,9 +71,9 @@ Fast-Drone-250 实机 EGO-Planner 链路可用 `roslaunch fast_drone_realflight 
 
 该包的检测核心复用自已归档的 `ob_ws/src/sp_vision_25`（云台自瞄工程），但复制到包内 `thirdparty/sp_vision/` 并逐处打补丁，因为上游顶层 CMake 无法作为 catkin 子目录嵌入（全局 `CMAKE_BUILD_TYPE`、硬编码 OpenVINO、厂商相机 SDK）。改动清单见该目录的 README。
 
-## 机载启动（shfiles）
+## 机载启动（scripts/ 与 config/）
 
-`shfiles/` 提供 systemd 启动脚本，链路为 MAVROS → D430 红外双目 → SchurVINS（使用飞控 IMU `/mavros/imu/data_raw`）→ `vins_mavros_bridge` → EGO-Planner + `px4ctrl`。SchurVINS 的 D430 实时入口在 `config/d430_schurvins/live_d430_px4imu.launch`（svo_ws 是独立仓库，故放在本工作区跟踪），标定模板为同目录的 `d430_stereo.yaml`（占位值，飞行前必须标定）。安装、配置和检查见 [`shfiles/README.md`](shfiles/README.md)。
+顶层 `scripts/` 提供 systemd 启动脚本，链路为 MAVROS → D430 红外双目 → SchurVINS（使用飞控 IMU `/mavros/imu/data_raw`）→ `vins_mavros_bridge` → EGO-Planner + `px4ctrl`。SchurVINS 的 D430 实时入口在 顶层 `config/d430_schurvins/live_d430_px4imu.launch`（svo_ws 是独立仓库，故放在本工作区跟踪），标定模板为同目录的 `d430_stereo.yaml`（占位值，飞行前必须标定）。安装、配置和检查见 [`docs/deploy.md`](../docs/deploy.md)。
 
 ## 克隆与更新
 
@@ -119,7 +102,7 @@ git submodule update --init --recursive
 
 ```bash
 source /opt/ros/$ROS_DISTRO/setup.bash
-cd <path-to-rmUAV>/rm_drone_ros
+cd <path-to-rmUAV>/catkin_ws
 rosdep install --from-paths src --ignore-src -r -y
 catkin_make
 source devel/setup.bash
@@ -136,20 +119,20 @@ catkin_make -DCATKIN_WHITELIST_PACKAGES="ov_core;ov_data;ov_eval;ov_init;ov_msck
 `perception/armor_perception` 只依赖核心 ROS 包（`roscpp`、`cv_bridge`、`nav_msgs`、`sensor_msgs`、Eigen、yaml-cpp），不依赖 `mavros_extras`、Ceres 或 OpenVINO。因此在上面第 109 行的 `mavros_extras` 装好之前，它仍可单独构建：
 
 ```bash
-cd rm_drone_ros && catkin_make --pkg armor_perception
+cd catkin_ws && catkin_make --pkg armor_perception
 ```
 
 它的源码树还自带一个独立的容器内构建脚本，用于在没有完整工作区（或本机没装 ROS）时验证：
 
 ```bash
-rm_drone_ros/src/perception/armor_perception/build.sh --tests
-rm_drone_ros/src/perception/armor_perception/build.sh --chain   # 端到端坐标链自检
+catkin_ws/src/perception/armor_perception/build.sh --tests
+catkin_ws/src/perception/armor_perception/build.sh --chain   # 端到端坐标链自检
 ```
 
 ## 当前构建限制
 
 - `perception/d430_slam` 已加 `CATKIN_IGNORE`。其 CMake 和 ORB-SLAM3 初始化代码仍含旧设备上的 `/home/nvidia/...` 绝对路径，并依赖外部安装的 ORB-SLAM3、Pangolin 和特定 OpenCV 版本。该包是一个 RealSense D430 双目 ORB-SLAM3 节点，只发布 `PoseStamped`（`/d430_camera/pose`），不含速度；接入时用 `vins_mavros_bridge` 的 `input_mode: pose_stamped`。当前不参与构建。
-- SchurVINS 源码及其依赖不参与 `rm_drone_ros` 构建，需在独立工作区启动估计器。控制链路适配器已提供 `schurvins.yaml`，默认订阅 `/svo/pose_imu` 并基于位姿差分估计速度；使用前确认实际 SchurVINS 输出与坐标轴约定符合配置，并标定 IMU 外参。通过 `fast_drone_realflight` 启动器可选 `localization:=schurvins` 接入 EGO-Planner 和 `px4ctrl`。
+- SchurVINS 源码及其依赖不参与 `catkin_ws` 构建，需在独立工作区启动估计器。控制链路适配器已提供 `schurvins.yaml`，默认订阅 `/svo/pose_imu` 并基于位姿差分估计速度；使用前确认实际 SchurVINS 输出与坐标轴约定符合配置，并标定 IMU 外参。通过 `fast_drone_realflight` 启动器可选 `localization:=schurvins` 接入 EGO-Planner 和 `px4ctrl`。
 - RealSense 驱动包（`realsense2_camera`、`realsense2_description`）的符号链接已移除，不再从本工作区构建。需要时由独立的 RealSense 工作区提供。
 - `ov_init` 和 `ov_msckf` 需要 Ceres Solver；未安装 `libceres-dev` 时 CMake 配置阶段会直接失败。
 - `communication/` 下的 `apm_d430_bridge`、`px4_d430_bridge` 含旧机器（Jetson）的串口默认值，不参与主构建；`px4_d430_bridge` 的 `fcu_url` 默认已改为 `/dev/ttyACM0`，可用 launch 参数覆盖。

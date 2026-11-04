@@ -29,6 +29,18 @@
 # Schurvins/dependencies.yaml when SchurVINS is evaluated; do not track it.
 /svo_ws/
 
+# Local runtime data (kept as empty directories)
+/data/*
+/bags/*
+/logs/*
+/tmp/*
+!/data/.gitkeep
+!/bags/.gitkeep
+!/logs/.gitkeep
+!/tmp/.gitkeep
+*.bag
+*.pcd
+
 # Core dumps
 core
 core.*

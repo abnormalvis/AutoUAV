@@ -4,7 +4,7 @@
 
 当前工作区位于 `rmUAV`，目标目录为：
 
-- `/home/idris/uav_ws/src/rmUAV/rm_drone_ros`
+- `/home/idris/uav_ws/src/rmUAV/catkin_ws`
 - 参考目录：
   - `/home/idris/uav_ws/src/rmUAV/third_party/fast-drone-250_cxr`
   - `/home/idris/uav_ws/src/rmUAV/third_party/raicom-air-recon-2026`
@@ -31,14 +31,14 @@
 
 ### 2.1 现有工程结构
 
-当前 `rm_drone_ros` 的源代码目录中，已经有以下模块：
+当前 `catkin_ws` 的源代码目录中，已经有以下模块：
 
 - `src/open_vins/`
 - `src/vision_to_mavros/`
 - `src/Prometheus/`
-- `src/controller/offboard/`
-- `src/controller/px4ctrl`（通过符号链接指向 Fast-Drone-250 的 px4ctrl）
-- `src/planner/ego_planner`（通过符号链接指向 Fast-Drone-250 的 planner）
+- `src/control/offboard/`
+- `src/control/px4ctrl`（通过符号链接指向 Fast-Drone-250 的 px4ctrl）
+- `src/planning/ego_planner`（通过符号链接指向 Fast-Drone-250 的 planner）
 - `src/common/quadrotor_msgs`、`uav_utils`、`cmake_utils`
 - `src/simulation/sitl_offboard/`
 
@@ -54,7 +54,7 @@
 1. `sqrtVINS` 已不再作为主目标，且当前 `.gitmodules` 与实际路径不一致。
 2. `Fast-Drone-250`、`RAICOM`、`Prometheus` 三套代码并存，容易导致包名冲突、重复依赖和符号链接混乱。
 3. `vision_to_mavros` 仍是一个较通用的旧接口，适合兼容层，但不建议作为最终正式接口。
-4. `rm_drone_ros` 中存在大量 build、devel、备份目录，后续需统一整理为正式源码工程。
+4. `catkin_ws` 中存在大量 build、devel、备份目录，后续需统一整理为正式源码工程。
 5. 当前仍缺少统一的 VIO/VINS 对 PX4 的抽象层；即使算法更换，控制器和规划器理论上也不应感知具体算法实现。
 
 ---
@@ -100,7 +100,7 @@
 建议正式目录框架如下：
 
 ```text
-rm_drone_ros/src/
+catkin_ws/src/
 ├── perception/
 │   ├── vio_vins_fusion/
 │   ├── vio_schurvins/
@@ -374,7 +374,7 @@ base_to_vio_rpy_deg: [0.0, 0.0, 0.0]
 
 建议以 `fast-drone-250_cxr` 的版本为改进基础，RAICOM 版本作为对照参考，并将确定的唯一版本放入正式工作区：
 
-- `rm_drone_ros/src/controller/px4ctrl`
+- `catkin_ws/src/control/px4ctrl`
 
 迁移时重点核对：
 
@@ -396,7 +396,7 @@ base_to_vio_rpy_deg: [0.0, 0.0, 0.0]
 建议以 `fast-drone-250_cxr` 的 planner 为改进基础，保留对照：
 
 - `/third_party/raicom-air-recon-2026/.../ego_planner`
-- `/rm_drone_ros/src/Prometheus/.../ego_planner_swarm`
+- `/catkin_ws/src/Prometheus/.../ego_planner_swarm`
 
 （最终采用哪一份，以 7.0 接口核对结果为准。）
 
@@ -701,7 +701,7 @@ VIO：
   先限位悬停与短距离指令，不直接前飞
 
 仓库管理：
-  rm_drone_ros 作为唯一 ROS1 工作区
+  catkin_ws 作为唯一 ROS1 工作区
   third_party 只保存参考源码或正式依赖
   清理 build/devel/备份目录和重复源码入口
 ```

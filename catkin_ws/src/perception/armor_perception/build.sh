@@ -9,12 +9,12 @@
 #   ./build.sh --shell      interactive shell in a workspace with this package
 #
 # The package is built in an isolated catkin workspace inside the container, not
-# in rm_drone_ros itself. The full workspace does not configure in this image:
+# in catkin_ws itself. The full workspace does not configure in this image:
 # communication/apm_d430_bridge requires `mavros_extras`, which is not
 # installed. armor_perception depends only on core ROS packages, so an isolated
 # workspace is sufficient and much faster.
 #
-# To build it as part of rm_drone_ros, install the missing dependency first:
+# To build it as part of catkin_ws, install the missing dependency first:
 #   apt-get install ros-noetic-mavros-extras
 # then run catkin_make in the usual way.
 set -euo pipefail

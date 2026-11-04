@@ -9,7 +9,7 @@
 # The host has no ROS installation, so this is the only way to compile here.
 #
 # The package is built in an isolated catkin workspace inside the container
-# rather than in rm_drone_ros. The full workspace does not configure in this
+# rather than in catkin_ws. The full workspace does not configure in this
 # image because communication/apm_d430_bridge requires `mavros_extras`, which
 # is not installed. This package depends only on core ROS packages, so an
 # isolated workspace is sufficient and much faster.

@@ -3,7 +3,7 @@
        camera's intrinsics, extrinsics and lens are not fixed yet.
 
        Before running this on hardware:
-         * the five `perception/ov_*` symlinks in rm_drone_ros/src/perception
+         * the five `vendor/ov_*` symlinks in catkin_ws/src/perception
            currently dangle (they point at ../open_vins/, which does not
            exist); repoint them at third_party/open_vins/* or OpenVINS will not
            build;
