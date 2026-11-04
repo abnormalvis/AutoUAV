@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>fast_drone_realflight</name>
+  <version>0.1.0</version>
+  <description>Real-flight launch integration for Fast-Drone-250 EGO-Planner, px4ctrl, and VIO.</description>
+
+  <maintainer email="maintainer@example.com">rmUAV maintainers</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <exec_depend>ego_planner</exec_depend>
+  <exec_depend>px4ctrl</exec_depend>
+  <exec_depend>vins_mavros_bridge</exec_depend>
+
+  <export/>
+</package>
