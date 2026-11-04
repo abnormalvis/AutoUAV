@@ -4,9 +4,22 @@
 // #  written for another century. -->
 
 <launch>
+  <!-- ORB-SLAM3 vocabulary and settings. Both used to be hardcoded to
+       /home/nvidia/... and are now parameters.
+       settings_path defaults to this package's config/settings.yaml. -->
+  <arg name="vocabulary_path" default="$(optenv ORBSLAM3_VOCABULARY /home/nvidia/Softwares/ORB_SLAM3/Vocabulary/ORBvoc.txt)" />
+  <arg name="settings_path" default="$(find d430_slam)/config/settings.yaml" />
+  <arg name="pose_topic" default="/d430_camera/pose" />
 
+  <!-- The node publishes geometry_msgs/PoseStamped only: ORB-SLAM3 does not
+       estimate a velocity for this pipeline, so there is none to forward.
+       Bridge it with vins_mavros_bridge's pose_stamped mode, which
+       differentiates the pose when derive_twist is set. Do not feed it to
+       px4ctrl directly. -->
   <node name="d430_slam_node" pkg="d430_slam" type="d430_slam_node" output="screen" >
-    <!-- <rosparam param="input_topic" subst_value="True">$(arg input_topic)</rosparam> -->
+    <param name="vocabulary_path" value="$(arg vocabulary_path)" />
+    <param name="settings_path" value="$(arg settings_path)" />
+    <param name="pose_topic" value="$(arg pose_topic)" />
   </node>
 
 </launch>

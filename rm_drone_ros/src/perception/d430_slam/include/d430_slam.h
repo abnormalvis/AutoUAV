@@ -22,6 +22,10 @@ namespace realsense{
         ~Slam();
     private:
         ros::NodeHandle nh_;
+        std::string vocabulary_path_;
+        std::string settings_path_;
+        std::string pose_topic_;
+        std::string frame_id_;
         std::unique_ptr<D430> d430_camera_ptr_;
         std::unique_ptr<ORB_SLAM3::System> orbslam_ptr_;
         cv::Mat left_img_, right_img_;
