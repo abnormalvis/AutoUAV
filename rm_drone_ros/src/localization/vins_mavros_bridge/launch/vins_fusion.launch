@@ -1,6 +1,6 @@
 <launch>
-  <!-- VINS-Fusion adapter template. VINS-Fusion is not part of the catkin build
-       yet; this launch exists so the wiring is fixed before the source lands. -->
+  <!-- VINS-Fusion adapter. Start vins_estimator separately; this only starts
+       the bridge, so VIO and bridge lifetimes stay independent. -->
   <arg name="input_topic" default="/vins_estimator/odometry" />
   <arg name="config" default="$(find vins_mavros_bridge)/config/vins_fusion.yaml" />
   <arg name="publish_vision_pose" default="true" />

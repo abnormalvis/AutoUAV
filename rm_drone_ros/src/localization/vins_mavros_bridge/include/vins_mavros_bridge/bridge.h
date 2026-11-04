@@ -9,6 +9,7 @@
 #include <Eigen/Geometry>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
@@ -17,6 +18,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 
 #include <vins_mavros_bridge/BridgeStatus.h>
+#include <vins_mavros_bridge/pose_derivative.h>
 
 namespace vins_mavros_bridge
 {
@@ -35,7 +37,7 @@ public:
   Bridge();
 
 private:
-  enum class InputMode { kOdometry, kPoseStamped };
+  enum class InputMode { kOdometry, kPoseStamped, kPoseWithCovariance };
   enum class TwistFrame { kBody, kWorld };
   enum class JumpAction { kReject, kResetOrigin };
   enum class State { kInit, kOk, kStale };
@@ -50,13 +52,19 @@ private:
     boost::array<double, 36> pose_covariance{};
     boost::array<double, 36> twist_covariance{};
     bool has_twist{false};
+    /// True when the twist was differentiated from the pose rather than
+    /// published by the estimator. Derived twist is always world-frame linear
+    /// and body-frame angular, whatever input_twist_frame says.
+    bool derived{false};
   };
 
   void loadParameters();
   void advertise();
+  std::string inputModeName() const;
 
   void odometryCallback(const nav_msgs::Odometry::ConstPtr& msg);
   void poseStampedCallback(const geometry_msgs::PoseStamped::ConstPtr& msg);
+  void poseWithCovarianceCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg);
   void localPositionCallback(const nav_msgs::Odometry::ConstPtr& msg);
 
   void process(const Measurement& measurement);
@@ -68,6 +76,7 @@ private:
 
   static Eigen::Isometry3d transformFromXyzRpy(const Eigen::Vector3d& xyz,
                                                const Eigen::Vector3d& rpy_rad);
+  static TwistFrame parseTwistFrame(const std::string& value, const std::string& parameter_name);
   static Eigen::Vector3d rpyFromRotation(const Eigen::Matrix3d& rotation);
   static void setPoseFromTransform(const Eigen::Isometry3d& transform,
                                    geometry_msgs::Pose& pose);
@@ -84,9 +93,23 @@ private:
 
   // --- adapter configuration -----------------------------------------------
   InputMode input_mode_{InputMode::kOdometry};
-  TwistFrame twist_frame_{TwistFrame::kBody};
+  /// Reference frame of the input's twist.linear.
+  TwistFrame twist_linear_frame_{TwistFrame::kBody};
+  /// Reference frame of the input's twist.angular. VINS-Fusion is the reason
+  /// this is separate: it publishes world-frame linear velocity and no angular
+  /// rate at all, while other estimators mix a world-frame linear with a
+  /// body-frame angular.
+  TwistFrame twist_angular_frame_{TwistFrame::kBody};
   JumpAction jump_action_{JumpAction::kReject};
   bool input_twist_angular_{true};
+  /// Differentiate the pose instead of using the published twist. Required for
+  /// pose-only sources, optional for an Odometry source whose velocity is
+  /// unusable.
+  bool derive_twist_{false};
+  /// Report a child_frame_id that disagrees with input_child_frame. Some
+  /// estimators get this field wrong (VINS-Fusion publishes "world" on an
+  /// IMU-frame pose), and the warning is only useful if it can be turned off.
+  bool check_child_frame_{true};
 
   std::string input_topic_;
   std::string world_frame_;
@@ -123,6 +146,9 @@ private:
   /// T_base_input: the pose of the VIO's child frame expressed in base_link,
   /// i.e. where the sensor is mounted relative to the body origin.
   Eigen::Isometry3d base_to_input_{Eigen::Isometry3d::Identity()};
+
+  /// Used only when derive_twist_ is set.
+  PoseDerivative derivative_;
 
   /// Left-multiplied world correction. Identity unless a reset_origin event
   /// occurred; loop-closure discontinuities land here, never in the raw stream.

@@ -1,19 +1,53 @@
-# VINS-Fusion adapter template.
+# VINS-Fusion (/vins_estimator/odometry) adapter.
 #
-# VINS-Fusion already publishes world-frame twist with child_frame_id "body",
-# so no twist rotation is applied. Confirm against the real output before
-# trusting this file: the field semantics matter, not the frame names.
+# Field semantics, read from the VINS-Fusion source rather than assumed. Every
+# line below is a claim about vins_estimator/src/utility/visualization.cpp
+# (pubOdometry) and vins_estimator/src/estimator/estimator.cpp.
 #
-# Not exercised in this workspace yet -- VINS-Fusion source is not part of the
-# catkin build.
+#   pose            IMU frame in the world frame.
+#                   Ps[WINDOW_SIZE] / Rs[WINDOW_SIZE].
+#
+#   twist.linear    WORLD frame. Vs is integrated as
+#                     Vs[j] += dt * (Rs[j] * (a - ba) + g)
+#                     Ps[j] += dt * Vs[j] + ...
+#                   so it can only be a world-frame velocity. The visual-
+#                   inertial initialiser rotates the body-frame solution into
+#                   the world with Vs[i] = rot_diff * Vs[i].
+#
+#   twist.angular   NOT POPULATED. pubOdometry never writes
+#                   odometry.twist.twist.angular, so it is structurally zero.
+#                   Passing it through would tell EGO-Planner "not rotating"
+#                   during every turn. Hence input_twist_angular: false.
+#
+#   covariance      NOT POPULATED either; all 36 bytes stay zero. The bridge's
+#                   floor parameters are what make the output non-degenerate.
+#
+#   child_frame_id  "world" -- and that is a bug in VINS-Fusion. The pose it
+#                   describes is the IMU frame. Setting input_child_frame to
+#                   match the message would apply the extrinsic backwards, so
+#                   the truthful frame is configured below and the mismatch
+#                   warning is switched off.
+#
+# The published pose is the IMU frame ("body" in VINS-Fusion's TF tree), so
+# base_to_input is IMU -> base_link.
 
 input_mode: odometry
 input_topic: /vins_estimator/odometry
 input_child_frame: body
 input_twist_frame: world
-input_twist_angular: true
+input_twist_angular: false
+# input_twist_angular_frame is moot while input_twist_angular is false; VINS-Fusion
+# would publish a body-frame rate if it published one at all.
+input_twist_angular_frame: body
+# VINS-Fusion emits nav_msgs/Odometry, so no differentiation is needed or wanted:
+# the estimator's fused velocity is far better than a finite difference.
+derive_twist: false
+# Known-broken child_frame_id (see above). Do not silence this for other VIOs.
+check_child_frame: false
 
-# Where the VINS body frame sits in base_link. Placeholder: calibrate.
+# Where the VINS-Fusion IMU sits in base_link: [x, y, z] metres, then
+# roll/pitch/yaw in degrees, ZYX order. PLACEHOLDER -- replace with a measured
+# value. A wrong extrinsic biases every controller downstream with no warning.
 base_to_input_xyz: [0.0, 0.0, 0.0]
 base_to_input_rpy_deg: [0.0, 0.0, 0.0]
 

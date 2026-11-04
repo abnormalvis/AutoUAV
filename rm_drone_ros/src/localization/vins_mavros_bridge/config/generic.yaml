@@ -1,15 +1,24 @@
 # Generic template for a VIO that publishes PoseStamped only.
 #
-# PoseStamped carries no velocity, so the bridge publishes zero twist and
-# downstream consumers see a position-only estimate. px4ctrl's velocity
-# feedback term and EGO-Planner's initial-state estimate both degrade in this
-# mode; prefer a full Odometry source for flight.
+# PoseStamped carries no velocity, so the bridge differentiates the pose when
+# derive_twist is set. That is a fallback, not a substitute: px4ctrl's velocity
+# feedback term and EGO-Planner's initial-state estimate both degrade with a
+# differentiated signal. Prefer a full Odometry source for flight.
 
 input_mode: pose_stamped
 input_topic: /vio/pose
 input_child_frame: camera_link
 input_twist_frame: world
 input_twist_angular: false
+
+# A PoseStamped has no velocity, so without this the output twist is identically
+# zero and px4ctrl's velocity feedback sees a permanent false error. The derived
+# twist is world-frame linear / body-frame angular over a 0.1 s window: it lags
+# by about that window and should not be treated as a measurement. Set to false
+# only if something downstream must see "no velocity" rather than "unknown".
+derive_twist: true
+twist_window: 0.10
+twist_min_dt: 0.02
 
 base_to_input_xyz: [0.0, 0.0, 0.0]
 base_to_input_rpy_deg: [0.0, 0.0, 0.0]

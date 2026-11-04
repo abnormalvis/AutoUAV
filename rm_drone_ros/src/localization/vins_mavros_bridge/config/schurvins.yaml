@@ -1,0 +1,78 @@
+# SchurVINS (/svo/pose_imu) adapter.
+#
+# SchurVINS is an SVO2.0 derivative, so its ROS interface is SVO's, not
+# VINS-Fusion's despite the similar name. Read from svo_ros/src/visualizer.cpp:
+#
+#   topic           /svo/pose_imu   (node is "svo", publisher is on pnh_)
+#   type            geometry_msgs/PoseWithCovarianceStamped
+#   pose            IMU frame in world. T_world_imu from the estimator.
+#   frame_id        "world" (Visualizer::kWorldFrame)
+#   covariance      populated from the estimator's 6x6
+#   twist           ABSENT. PoseWithCovarianceStamped has nowhere to put it,
+#                   and SVO does not compute one. Derived here instead; see
+#                   derive_twist below.
+#
+# Also published, useful for debugging but not used by this bridge:
+#   /svo/pose_cam/<i>     geometry_msgs/PoseStamped, per camera
+#   /svo/path_imu         nav_msgs/Path
+#   /svo/info             svo_msgs/Info (tracking quality)
+#
+# SchurVINS publishes TF world -> cam_pos itself. This bridge leaves publish_tf
+# off so the two are not in competition.
+
+input_mode: pose_with_covariance
+input_topic: /svo/pose_imu
+input_child_frame: imu
+
+# The estimate has no velocity, and forwarding zero is not neutral: px4ctrl's
+# Kv * (v_des - v) term would see a permanent false error during every
+# translation. PoseDerivative outputs world-frame linear and body-frame angular,
+# so the two frame parameters below are not consulted for a derived twist.
+derive_twist: true
+twist_window: 0.10
+twist_min_dt: 0.02
+
+input_twist_frame: world
+input_twist_angular: false
+input_twist_angular_frame: body
+
+# Where the SVO IMU frame sits in base_link: [x, y, z] metres, then
+# roll/pitch/yaw in degrees, ZYX order. PLACEHOLDER -- calibrate.
+#
+# Axis convention warning: SVO's world and IMU axes come from the calibration
+# file, not from REP-103. Depending on how the IMU extrinsic was written the
+# result may be FLU or FRD, and if the estimator initialised from a static
+# start the world yaw is arbitrary. Verify before flight by translating the
+# airframe 1 m along each world axis and confirming the output follows the
+# same axis with the same sign. A wrong-handed result here is not detectable
+# from the pose stream alone.
+base_to_input_xyz: [0.0, 0.0, 0.0]
+base_to_input_rpy_deg: [0.0, 0.0, 0.0]
+
+world_frame: world
+body_frame: base_link
+
+odometry_topic: /localization/odometry
+publish_vision_pose: true
+publish_mavros_odometry: false
+publish_tf: false
+
+input_timeout: 0.5
+max_jump_m: 1.0
+max_jump_deg: 30.0
+jump_action: reject
+recovery_frames: 5
+
+output_rate: 0.0
+max_republish_age: 0.2
+path_rate: 1.0
+path_max_poses: 1000
+
+pose_covariance_floor: [0.0025, 0.0025, 0.0025, 0.0004, 0.0004, 0.0004]
+# A differentiated velocity is an estimate of an estimate. Floor it higher than
+# a measured twist so nothing downstream treats it as precise.
+twist_covariance_floor: [0.04, 0.04, 0.04, 0.004, 0.004, 0.004]
+
+consistency_check: true
+px4_odom_topic: /mavros/local_position/odom
+consistency_tolerance: 1.0

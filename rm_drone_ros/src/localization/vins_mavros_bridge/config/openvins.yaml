@@ -16,6 +16,10 @@ input_topic: /ov_msckf/odomimu
 input_child_frame: imu
 input_twist_frame: body
 input_twist_angular: false
+# Both linear and angular are body-frame for OpenVINS, but the angular rate is a
+# placeholder, so only the linear half is ever rotated. Kept explicit so the
+# pairing with input_twist_frame is visible when this file is copied.
+input_twist_angular_frame: body
 
 # Where the IMU sits in base_link: [x, y, z] metres, then roll/pitch/yaw in
 # degrees. These are placeholders. Measure them on the airframe before flight;

@@ -1,0 +1,17 @@
+<launch>
+  <!-- SchurVINS adapter. Start SchurVINS itself separately (it lives in the
+       svo_ws evaluation workspace, not in this catkin workspace); this only
+       starts the bridge, so the two lifetimes stay independent. -->
+  <arg name="input_topic" default="/svo/pose_imu" />
+  <arg name="config" default="$(find vins_mavros_bridge)/config/schurvins.yaml" />
+  <arg name="publish_vision_pose" default="true" />
+  <arg name="publish_mavros_odometry" default="false" />
+
+  <node pkg="vins_mavros_bridge" type="vins_mavros_bridge_node" name="vins_mavros_bridge"
+        output="screen">
+    <rosparam command="load" file="$(arg config)" />
+    <param name="input_topic" value="$(arg input_topic)" />
+    <param name="publish_vision_pose" value="$(arg publish_vision_pose)" />
+    <param name="publish_mavros_odometry" value="$(arg publish_mavros_odometry)" />
+  </node>
+</launch>

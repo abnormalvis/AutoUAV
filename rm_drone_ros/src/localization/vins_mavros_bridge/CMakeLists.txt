@@ -33,6 +33,7 @@ include_directories(
 add_executable(vins_mavros_bridge_node
   src/bridge.cpp
   src/bridge_node.cpp
+  src/pose_derivative.cpp
 )
 
 add_dependencies(vins_mavros_bridge_node
@@ -46,8 +47,20 @@ install(TARGETS vins_mavros_bridge_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
+if(CATKIN_ENABLE_TESTING)
+  catkin_add_gtest(test_pose_derivative
+    test/test_pose_derivative.cpp
+    test/test_main.cpp
+    src/pose_derivative.cpp
+  )
+  if(TARGET test_pose_derivative)
+    target_link_libraries(test_pose_derivative ${catkin_LIBRARIES})
+  endif()
+endif()
+
 catkin_install_python(PROGRAMS
   scripts/synthetic_odom_publisher.py
+  scripts/frame_convention_check.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

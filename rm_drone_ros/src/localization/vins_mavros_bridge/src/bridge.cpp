@@ -43,13 +43,17 @@ Bridge::Bridge() : private_nh_("~")
   loadParameters();
   advertise();
 
-  if (input_mode_ == InputMode::kOdometry)
+  switch (input_mode_)
   {
-    input_sub_ = nh_.subscribe(input_topic_, 50, &Bridge::odometryCallback, this);
-  }
-  else
-  {
-    input_sub_ = nh_.subscribe(input_topic_, 50, &Bridge::poseStampedCallback, this);
+    case InputMode::kOdometry:
+      input_sub_ = nh_.subscribe(input_topic_, 50, &Bridge::odometryCallback, this);
+      break;
+    case InputMode::kPoseStamped:
+      input_sub_ = nh_.subscribe(input_topic_, 50, &Bridge::poseStampedCallback, this);
+      break;
+    case InputMode::kPoseWithCovariance:
+      input_sub_ = nh_.subscribe(input_topic_, 50, &Bridge::poseWithCovarianceCallback, this);
+      break;
   }
 
   if (consistency_check_)
@@ -63,12 +67,12 @@ Bridge::Bridge() : private_nh_("~")
 
   const Eigen::Vector3d extrinsic_rpy = rpyFromRotation(base_to_input_.linear());
   ROS_INFO("vins_mavros_bridge: %s (%s) -> %s", input_topic_.c_str(),
-           input_mode_ == InputMode::kOdometry ? "nav_msgs/Odometry" : "PoseStamped",
-           output_topic_.c_str());
-  ROS_INFO("vins_mavros_bridge: input child frame '%s' -> '%s', twist normalized from '%s' to "
-           "world",
+           inputModeName().c_str(), output_topic_.c_str());
+  ROS_INFO("vins_mavros_bridge: input child frame '%s' -> '%s', twist linear '%s' angular '%s' "
+           "normalized to world",
            input_child_frame_.c_str(), body_frame_.c_str(),
-           twist_frame_ == TwistFrame::kBody ? "body" : "world");
+           twist_linear_frame_ == TwistFrame::kBody ? "body" : "world",
+           twist_angular_frame_ == TwistFrame::kBody ? "body" : "world");
   ROS_INFO("vins_mavros_bridge: T_base_input xyz=[%.4f %.4f %.4f] rpy_deg=[%.4f %.4f %.4f]",
            base_to_input_.translation().x(), base_to_input_.translation().y(),
            base_to_input_.translation().z(), extrinsic_rpy.x() * kRadToDeg,
@@ -89,11 +93,37 @@ Bridge::Bridge() : private_nh_("~")
              "this estimate");
   }
 
-  if (twist_frame_ == TwistFrame::kBody && !input_child_frame_.empty())
+  if (derive_twist_)
   {
-    ROS_INFO("vins_mavros_bridge: body-frame twist is rotated using the '%s' orientation",
-             input_child_frame_.c_str());
+    ROS_INFO("vins_mavros_bridge: twist is differentiated from the pose over a %.3f s window; "
+             "it is an estimate, not a measurement",
+             derivative_.params().window);
   }
+  else if (input_mode_ != InputMode::kOdometry)
+  {
+    ROS_WARN("vins_mavros_bridge: %s carries no velocity and derive_twist is false, so the "
+             "output twist is identically zero. px4ctrl's velocity feedback and EGO-Planner's "
+             "initial state both degrade; set derive_twist: true unless that is deliberate.",
+             inputModeName().c_str());
+  }
+  if (!input_twist_angular_ && input_mode_ == InputMode::kOdometry)
+  {
+    ROS_INFO("vins_mavros_bridge: input angular rate marked unusable; publishing zero");
+  }
+}
+
+std::string Bridge::inputModeName() const
+{
+  switch (input_mode_)
+  {
+    case InputMode::kOdometry:
+      return "nav_msgs/Odometry";
+    case InputMode::kPoseStamped:
+      return "PoseStamped";
+    case InputMode::kPoseWithCovariance:
+      return "PoseWithCovarianceStamped";
+  }
+  return "unknown";
 }
 
 void Bridge::loadParameters()
@@ -104,13 +134,18 @@ void Bridge::loadParameters()
   {
     input_mode_ = InputMode::kPoseStamped;
   }
+  else if (input_mode == "pose_with_covariance")
+  {
+    input_mode_ = InputMode::kPoseWithCovariance;
+  }
   else if (input_mode == "odometry")
   {
     input_mode_ = InputMode::kOdometry;
   }
   else
   {
-    fatal("input_mode must be 'odometry' or 'pose_stamped', got '" + input_mode + "'");
+    fatal("input_mode must be 'odometry', 'pose_stamped' or 'pose_with_covariance', got '" +
+          input_mode + "'");
   }
 
   private_nh_.param<std::string>("input_topic", input_topic_, std::string("/ov_msckf/odomimu"));
@@ -118,22 +153,24 @@ void Bridge::loadParameters()
   private_nh_.param<std::string>("world_frame", world_frame_, std::string("world"));
   private_nh_.param<std::string>("body_frame", body_frame_, std::string("base_link"));
 
-  std::string twist_frame = "body";
-  private_nh_.param<std::string>("input_twist_frame", twist_frame, std::string("body"));
-  if (twist_frame == "body")
-  {
-    twist_frame_ = TwistFrame::kBody;
-  }
-  else if (twist_frame == "world")
-  {
-    twist_frame_ = TwistFrame::kWorld;
-  }
-  else
-  {
-    fatal("input_twist_frame must be 'body' or 'world', got '" + twist_frame + "'");
-  }
+  std::string linear_frame = "body";
+  private_nh_.param<std::string>("input_twist_frame", linear_frame, std::string("body"));
+  twist_linear_frame_ = parseTwistFrame(linear_frame, "input_twist_frame");
+
+  // Default to the linear frame so every existing adapter keeps its behaviour.
+  // Only estimators that mix the two conventions need to set this.
+  std::string angular_frame = linear_frame;
+  private_nh_.param<std::string>("input_twist_angular_frame", angular_frame, linear_frame);
+  twist_angular_frame_ = parseTwistFrame(angular_frame, "input_twist_angular_frame");
 
   private_nh_.param("input_twist_angular", input_twist_angular_, true);
+  private_nh_.param("derive_twist", derive_twist_, false);
+  private_nh_.param("check_child_frame", check_child_frame_, true);
+
+  PoseDerivative::Params derivative_params;
+  private_nh_.param("twist_window", derivative_params.window, derivative_params.window);
+  private_nh_.param("twist_min_dt", derivative_params.min_dt, derivative_params.min_dt);
+  derivative_.setParams(derivative_params);
 
   std::string jump_action = "reject";
   private_nh_.param<std::string>("jump_action", jump_action, std::string("reject"));
@@ -230,6 +267,21 @@ void Bridge::loadParameters()
   }
 }
 
+Bridge::TwistFrame Bridge::parseTwistFrame(const std::string& value,
+                                           const std::string& parameter_name)
+{
+  if (value == "body")
+  {
+    return TwistFrame::kBody;
+  }
+  if (value == "world")
+  {
+    return TwistFrame::kWorld;
+  }
+  fatal(parameter_name + " must be 'body' or 'world', got '" + value + "'");
+  return TwistFrame::kBody;  // unreachable; fatal() exits
+}
+
 void Bridge::advertise()
 {
   odometry_pub_ = nh_.advertise<nav_msgs::Odometry>(output_topic_, 20);
@@ -275,7 +327,7 @@ void Bridge::odometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
   // Frame-name mismatches are reported but not fatal: the configured extrinsic
   // is authoritative, and a wrong child_frame_id is the usual reason a VIO
   // silently lands in the wrong frame.
-  if (!input_child_frame_.empty() && !msg->child_frame_id.empty() &&
+  if (check_child_frame_ && !input_child_frame_.empty() && !msg->child_frame_id.empty() &&
       msg->child_frame_id != input_child_frame_)
   {
     ROS_WARN_THROTTLE(5.0,
@@ -305,6 +357,25 @@ void Bridge::poseStampedCallback(const geometry_msgs::PoseStamped::ConstPtr& msg
   measurement.position = Eigen::Vector3d(position.x, position.y, position.z);
   measurement.orientation =
       Eigen::Quaterniond(orientation.w, orientation.x, orientation.y, orientation.z);
+  measurement.has_twist = false;
+
+  process(measurement);
+}
+
+void Bridge::poseWithCovarianceCallback(
+    const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg)
+{
+  Measurement measurement;
+  measurement.stamp = msg->header.stamp;
+
+  const geometry_msgs::Point& position = msg->pose.pose.position;
+  const geometry_msgs::Quaternion& orientation = msg->pose.pose.orientation;
+  measurement.position = Eigen::Vector3d(position.x, position.y, position.z);
+  measurement.orientation =
+      Eigen::Quaterniond(orientation.w, orientation.x, orientation.y, orientation.z);
+  measurement.pose_covariance = msg->pose.covariance;
+  // PoseWithCovarianceStamped has no covariance for a twist it does not carry;
+  // the floor in process() is what keeps the output non-degenerate.
   measurement.has_twist = false;
 
   process(measurement);
@@ -388,22 +459,73 @@ void Bridge::process(const Measurement& raw)
   // T_world_body = T_world_input * inv(T_base_input), before loop-closure fixes.
   const Eigen::Isometry3d world_body_raw = world_input * base_to_input_.inverse();
 
+  // --- twist derivation ----------------------------------------------------
+  // Pose-only sources (ORB-SLAM3, SVO-based estimators) publish no velocity.
+  // Forwarding zero is not neutral: px4ctrl's Kv * (v_des - v) term then sees a
+  // permanent false error. Differentiate instead, when asked to.
+  if (derive_twist_)
+  {
+    Eigen::Vector3d linear_world = Eigen::Vector3d::Zero();
+    Eigen::Vector3d angular_body = Eigen::Vector3d::Zero();
+    if (derivative_.update(measurement.stamp.toSec(), measurement.position,
+                           measurement.orientation, &linear_world, &angular_body))
+    {
+      measurement.linear = linear_world;
+      measurement.angular = angular_body;
+      measurement.has_twist = true;
+      measurement.derived = true;
+    }
+    else
+    {
+      // Warming up, or the window was just cleared. Zero is the honest value
+      // here, but it must not be advertised as a measurement.
+      measurement.linear.setZero();
+      measurement.angular.setZero();
+      measurement.has_twist = false;
+      measurement.derived = false;
+    }
+  }
+
   // --- twist normalization -------------------------------------------------
   // The whole reason this package exists: OpenVINS publishes body-frame
   // velocity while px4ctrl and EGO-Planner consume world-frame velocity. A
   // wrong choice here is silent; it shows up as hover drift.
+  //
+  // Linear and angular are normalized independently. VINS-Fusion is why: it
+  // publishes world-frame linear velocity and leaves angular at zero, while a
+  // body-frame estimator would need both rotated. A single frame selector
+  // labelled its world-frame linear velocity correctly and then silently
+  // mislabelled the angular rate.
   Eigen::Vector3d linear_raw = measurement.linear;
   Eigen::Vector3d angular_raw = measurement.angular;
   Eigen::Matrix3d twist_rotation = Eigen::Matrix3d::Identity();
-  if (measurement.has_twist && twist_frame_ == TwistFrame::kBody)
+
+  TwistFrame linear_frame = twist_linear_frame_;
+  TwistFrame angular_frame = twist_angular_frame_;
+  if (measurement.derived)
+  {
+    // PoseDerivative produces world-frame linear and body-frame angular, so
+    // the configuration does not apply to it.
+    linear_frame = TwistFrame::kWorld;
+    angular_frame = TwistFrame::kBody;
+  }
+
+  if (measurement.has_twist)
   {
     // Body velocity is expressed in the input child frame; the output body
     // frame differs only by a fixed extrinsic, so rotating by the world
     // orientation of the input child frame is exact.
-    const Eigen::Matrix3d world_input_rotation = world_body_raw.linear() * base_to_input_.linear();
-    linear_raw = world_input_rotation * linear_raw;
-    angular_raw = world_input_rotation * angular_raw;
-    twist_rotation = world_input_rotation;
+    const Eigen::Matrix3d world_input_rotation =
+        world_body_raw.linear() * base_to_input_.linear();
+    if (linear_frame == TwistFrame::kBody)
+    {
+      linear_raw = world_input_rotation * linear_raw;
+      twist_rotation = world_input_rotation;
+    }
+    if (angular_frame == TwistFrame::kBody)
+    {
+      angular_raw = world_input_rotation * angular_raw;
+    }
   }
 
   Eigen::Isometry3d world_body = correction_ * world_body_raw;
@@ -464,7 +586,11 @@ void Bridge::process(const Measurement& raw)
   odometry.twist.twist.linear.x = linear_raw.x();
   odometry.twist.twist.linear.y = linear_raw.y();
   odometry.twist.twist.linear.z = linear_raw.z();
-  if (measurement.has_twist && input_twist_angular_)
+  // A derived angular rate is a measurement even when the input message carries
+  // none, so the input_twist_angular switch only gates the passthrough case.
+  const bool publish_angular = measurement.has_twist &&
+                               (input_twist_angular_ || measurement.derived);
+  if (publish_angular)
   {
     odometry.twist.twist.angular.x = angular_raw.x();
     odometry.twist.twist.angular.y = angular_raw.y();
