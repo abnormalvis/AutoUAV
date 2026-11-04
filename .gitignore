@@ -1,5 +1,13 @@
 # Reference checkouts only; not built by catkin and not tracked.
 /third_party/fast-drone-250_cxr/
+/third_party/fast-drone-250-cxr/
+/third_party/REAL_DRONE_2inch/
+
+# Stray catkin workspace (root-owned, created by a container build) around the submodule.
+/third_party/build/
+/third_party/devel/
+/third_party/src/
+/third_party/.catkin_workspace
 /third_party/raicom-air-recon-2026/
 /third_party/NMPC-QUA/
 /third_party/Prometheus/
