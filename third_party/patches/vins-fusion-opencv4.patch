@@ -1,0 +1,258 @@
+diff --git a/camera_models/src/calib/CameraCalibration.cc b/camera_models/src/calib/CameraCalibration.cc
+index 10543e9..682fe07 100644
+--- a/camera_models/src/calib/CameraCalibration.cc
++++ b/camera_models/src/calib/CameraCalibration.cc
+@@ -232,7 +232,7 @@ CameraCalibration::drawResults(std::vector<cv::Mat>& images) const
+         cv::Mat& image = images.at(i);
+         if (image.channels() == 1)
+         {
+-            cv::cvtColor(image, image, CV_GRAY2RGB);
++            cv::cvtColor(image, image, cv::COLOR_GRAY2RGB);
+         }
+ 
+         std::vector<cv::Point2f> estImagePoints;
+@@ -250,12 +250,12 @@ CameraCalibration::drawResults(std::vector<cv::Mat>& images) const
+             cv::circle(image,
+                        cv::Point(cvRound(pObs.x * drawMultiplier),
+                                  cvRound(pObs.y * drawMultiplier)),
+-                       5, green, 2, CV_AA, drawShiftBits);
++                       5, green, 2, cv::LINE_AA, drawShiftBits);
+ 
+             cv::circle(image,
+                        cv::Point(cvRound(pEst.x * drawMultiplier),
+                                  cvRound(pEst.y * drawMultiplier)),
+-                       5, red, 2, CV_AA, drawShiftBits);
++                       5, red, 2, cv::LINE_AA, drawShiftBits);
+ 
+             float error = cv::norm(pObs - pEst);
+ 
+@@ -272,7 +272,7 @@ CameraCalibration::drawResults(std::vector<cv::Mat>& images) const
+ 
+         cv::putText(image, oss.str(), cv::Point(10, image.rows - 10),
+                     cv::FONT_HERSHEY_COMPLEX, 0.5, cv::Scalar(255, 255, 255),
+-                    1, CV_AA);
++                    1, cv::LINE_AA);
+     }
+ }
+ 
+diff --git a/camera_models/src/chessboard/Chessboard.cc b/camera_models/src/chessboard/Chessboard.cc
+index 4c0a761..1cb745f 100644
+--- a/camera_models/src/chessboard/Chessboard.cc
++++ b/camera_models/src/chessboard/Chessboard.cc
+@@ -17,13 +17,13 @@ Chessboard::Chessboard(cv::Size boardSize, cv::Mat& image)
+ {
+     if (image.channels() == 1)
+     {
+-        cv::cvtColor(image, mSketch, CV_GRAY2BGR);
++        cv::cvtColor(image, mSketch, cv::COLOR_GRAY2BGR);
+         image.copyTo(mImage);
+     }
+     else
+     {
+         image.copyTo(mSketch);
+-        cv::cvtColor(image, mImage, CV_BGR2GRAY);
++        cv::cvtColor(image, mImage, cv::COLOR_BGR2GRAY);
+     }
+ }
+ 
+@@ -31,10 +31,10 @@ void
+ Chessboard::findCorners(bool useOpenCV)
+ {
+     mCornersFound = findChessboardCorners(mImage, mBoardSize, mCorners,
+-                                          CV_CALIB_CB_ADAPTIVE_THRESH +
+-                                          CV_CALIB_CB_NORMALIZE_IMAGE +
+-                                          CV_CALIB_CB_FILTER_QUADS +
+-                                          CV_CALIB_CB_FAST_CHECK,
++                                          cv::CALIB_CB_ADAPTIVE_THRESH +
++                                          cv::CALIB_CB_NORMALIZE_IMAGE +
++                                          cv::CALIB_CB_FILTER_QUADS +
++                                          cv::CALIB_CB_FAST_CHECK,
+                                           useOpenCV);
+ 
+     if (mCornersFound)
+@@ -141,24 +141,24 @@ Chessboard::findChessboardCornersImproved(const cv::Mat& image,
+     // Image histogram normalization and
+     // BGR to Grayscale image conversion (if applicable)
+     // MARTIN: Set to "false"
+-    if (image.channels() != 1 || (flags & CV_CALIB_CB_NORMALIZE_IMAGE))
++    if (image.channels() != 1 || (flags & cv::CALIB_CB_NORMALIZE_IMAGE))
+     {
+         cv::Mat norm_img(image.rows, image.cols, CV_8UC1);
+ 
+         if (image.channels() != 1)
+         {
+-            cv::cvtColor(image, norm_img, CV_BGR2GRAY);
++            cv::cvtColor(image, norm_img, cv::COLOR_BGR2GRAY);
+             img = norm_img;
+         }
+ 
+-        if (flags & CV_CALIB_CB_NORMALIZE_IMAGE)
++        if (flags & cv::CALIB_CB_NORMALIZE_IMAGE)
+         {
+             cv::equalizeHist(image, norm_img);
+             img = norm_img;
+         }
+     }
+ 
+-    if (flags & CV_CALIB_CB_FAST_CHECK)
++    if (flags & cv::CALIB_CB_FAST_CHECK)
+     {
+         if (!checkChessboard(img, patternSize))
+         {
+@@ -189,13 +189,13 @@ Chessboard::findChessboardCornersImproved(const cv::Mat& image,
+             cv::Mat thresh_img;
+ 
+             // convert the input grayscale image to binary (black-n-white)
+-            if (flags & CV_CALIB_CB_ADAPTIVE_THRESH)
++            if (flags & cv::CALIB_CB_ADAPTIVE_THRESH)
+             {
+                 int blockSize = lround(prevSqrSize == 0 ?
+                     std::min(img.cols,img.rows)*(k%2 == 0 ? 0.2 : 0.1): prevSqrSize*2)|1;
+ 
+                 // convert to binary
+-                cv::adaptiveThreshold(img, thresh_img, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, blockSize, (k/2)*5);
++                cv::adaptiveThreshold(img, thresh_img, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY, blockSize, (k/2)*5);
+             }
+             else
+             {
+@@ -204,7 +204,7 @@ Chessboard::findChessboardCornersImproved(const cv::Mat& image,
+                 int thresh_level = lround(mean - 10);
+                 thresh_level = std::max(thresh_level, 10);
+ 
+-                cv::threshold(img, thresh_img, thresh_level, 255, CV_THRESH_BINARY);
++                cv::threshold(img, thresh_img, thresh_level, 255, cv::THRESH_BINARY);
+             }
+ 
+             // MARTIN's Code
+@@ -212,8 +212,8 @@ Chessboard::findChessboardCornersImproved(const cv::Mat& image,
+             // homogeneous dilation is performed, which is crucial for small,
+             // distorted checkers. Use the CROSS kernel first, since its action
+             // on the image is more subtle
+-            cv::Mat kernel1 = cv::getStructuringElement(CV_SHAPE_CROSS, cv::Size(3,3), cv::Point(1,1));
+-            cv::Mat kernel2 = cv::getStructuringElement(CV_SHAPE_RECT, cv::Size(3,3), cv::Point(1,1));
++            cv::Mat kernel1 = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(3,3), cv::Point(1,1));
++            cv::Mat kernel2 = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3,3), cv::Point(1,1));
+ 
+             if (dilations >= 1)
+                 cv::dilate(thresh_img, thresh_img, kernel1);
+@@ -234,7 +234,7 @@ Chessboard::findChessboardCornersImproved(const cv::Mat& image,
+             // because otherwise we risk screwing up filters like cvSmooth()
+             cv::rectangle(thresh_img, cv::Point(0,0),
+                           cv::Point(thresh_img.cols - 1, thresh_img.rows - 1),
+-                          CV_RGB(255,255,255), 3, 8);
++                          cv::Scalar(255,255,255), 3, 8);
+ 
+             // Generate quadrangles in the following function
+             std::vector<ChessboardQuadPtr> quads;
+@@ -317,7 +317,7 @@ Chessboard::findChessboardCornersImproved(const cv::Mat& image,
+         }
+ 
+         cv::cornerSubPix(image, corners, cv::Size(11, 11), cv::Size(-1,-1),
+-                         cv::TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
++                         cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::MAX_ITER, 30, 0.1));
+ 
+         return true;
+     }
+@@ -1172,7 +1172,7 @@ Chessboard::generateQuads(std::vector<ChessboardQuadPtr>& quads,
+     std::vector<cv::Vec4i> hierarchy;
+ 
+     // Initialize contour retrieving routine
+-    cv::findContours(image, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
++    cv::findContours(image, contours, hierarchy, cv::RETR_CCOMP, cv::CHAIN_APPROX_SIMPLE);
+ 
+     std::vector< std::vector<cv::Point> > quadContours;
+ 
+@@ -1238,7 +1238,7 @@ Chessboard::generateQuads(std::vector<ChessboardQuadPtr>& quads,
+             dp = pt[1] - pt[2];
+             double d4 = sqrt(dp.dot(dp));
+ 
+-            if (!(flags & CV_CALIB_CB_FILTER_QUADS) ||
++            if (!(flags & cv::CALIB_CB_FILTER_QUADS) ||
+                 (d3*4 > d4 && d4*4 > d3 && d3*d4 < area*1.5 && area > minSize &&
+                 d1 >= 0.15 * p && d2 >= 0.15 * p))
+             {
+@@ -1583,20 +1583,20 @@ Chessboard::checkChessboard(const cv::Mat& image, cv::Size patternSize) const
+     bool result = false;
+     for (float threshLevel = blackLevel; threshLevel < whiteLevel && !result; threshLevel += 20.0f)
+     {
+-        cv::threshold(white, thresh, threshLevel + blackWhiteGap, 255, CV_THRESH_BINARY);
++        cv::threshold(white, thresh, threshLevel + blackWhiteGap, 255, cv::THRESH_BINARY);
+ 
+         std::vector< std::vector<cv::Point> > contours;
+         std::vector<cv::Vec4i> hierarchy;
+ 
+         // Initialize contour retrieving routine
+-        cv::findContours(thresh, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
++        cv::findContours(thresh, contours, hierarchy, cv::RETR_CCOMP, cv::CHAIN_APPROX_SIMPLE);
+ 
+         std::vector<std::pair<float, int> > quads;
+         getQuadrangleHypotheses(contours, quads, 1);
+ 
+-        cv::threshold(black, thresh, threshLevel, 255, CV_THRESH_BINARY_INV);
++        cv::threshold(black, thresh, threshLevel, 255, cv::THRESH_BINARY_INV);
+ 
+-        cv::findContours(thresh, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
++        cv::findContours(thresh, contours, hierarchy, cv::RETR_CCOMP, cv::CHAIN_APPROX_SIMPLE);
+         getQuadrangleHypotheses(contours, quads, 0);
+ 
+         const size_t min_quads_count = patternSize.width * patternSize.height / 2;
+diff --git a/camera_models/src/intrinsic_calib.cc b/camera_models/src/intrinsic_calib.cc
+index 7590a64..2742d3d 100644
+--- a/camera_models/src/intrinsic_calib.cc
++++ b/camera_models/src/intrinsic_calib.cc
+@@ -274,7 +274,7 @@ main( int argc, char** argv )
+                          0.5,
+                          cv::Scalar( 255, 255, 255 ),
+                          1,
+-                         CV_AA );
++                         cv::LINE_AA );
+             cv::imshow( "Image", cbImages.at( i ) );
+             cv::waitKey( 0 );
+         }
+diff --git a/vins_estimator/src/KITTIGPSTest.cpp b/vins_estimator/src/KITTIGPSTest.cpp
+index 8c75576..e2c9e4e 100644
+--- a/vins_estimator/src/KITTIGPSTest.cpp
++++ b/vins_estimator/src/KITTIGPSTest.cpp
+@@ -119,8 +119,8 @@ int main(int argc, char** argv)
+ 			printf("%s\n", leftImagePath.c_str() );
+ 			printf("%s\n", rightImagePath.c_str() );
+ 
+-			imLeft = cv::imread(leftImagePath, CV_LOAD_IMAGE_GRAYSCALE );
+-			imRight = cv::imread(rightImagePath, CV_LOAD_IMAGE_GRAYSCALE );
++			imLeft = cv::imread(leftImagePath, cv::IMREAD_GRAYSCALE );
++			imRight = cv::imread(rightImagePath, cv::IMREAD_GRAYSCALE );
+ 
+ 			double imgTime = imageTimeList[i] - baseTime;
+ 
+diff --git a/vins_estimator/src/KITTIOdomTest.cpp b/vins_estimator/src/KITTIOdomTest.cpp
+index df4c338..073a2f3 100644
+--- a/vins_estimator/src/KITTIOdomTest.cpp
++++ b/vins_estimator/src/KITTIOdomTest.cpp
+@@ -92,12 +92,12 @@ int main(int argc, char** argv)
+ 			//printf("%s\n", leftImagePath.c_str() );
+ 			//printf("%s\n", rightImagePath.c_str() );
+ 
+-			imLeft = cv::imread(leftImagePath, CV_LOAD_IMAGE_GRAYSCALE );
++			imLeft = cv::imread(leftImagePath, cv::IMREAD_GRAYSCALE );
+ 			sensor_msgs::ImagePtr imLeftMsg = cv_bridge::CvImage(std_msgs::Header(), "mono8", imLeft).toImageMsg();
+ 			imLeftMsg->header.stamp = ros::Time(imageTimeList[i]);
+ 			pubLeftImage.publish(imLeftMsg);
+ 
+-			imRight = cv::imread(rightImagePath, CV_LOAD_IMAGE_GRAYSCALE );
++			imRight = cv::imread(rightImagePath, cv::IMREAD_GRAYSCALE );
+ 			sensor_msgs::ImagePtr imRightMsg = cv_bridge::CvImage(std_msgs::Header(), "mono8", imRight).toImageMsg();
+ 			imRightMsg->header.stamp = ros::Time(imageTimeList[i]);
+ 			pubRightImage.publish(imRightMsg);
+diff --git a/vins_estimator/src/featureTracker/feature_tracker.cpp b/vins_estimator/src/featureTracker/feature_tracker.cpp
+index eb69c88..4bf9703 100644
+--- a/vins_estimator/src/featureTracker/feature_tracker.cpp
++++ b/vins_estimator/src/featureTracker/feature_tracker.cpp
+@@ -453,7 +453,7 @@ void FeatureTracker::drawTrack(const cv::Mat &imLeft, const cv::Mat &imRight,
+         cv::hconcat(imLeft, imRight, imTrack);
+     else
+         imTrack = imLeft.clone();
+-    cv::cvtColor(imTrack, imTrack, CV_GRAY2RGB);
++    cv::cvtColor(imTrack, imTrack, cv::COLOR_GRAY2RGB);
+ 
+     for (size_t j = 0; j < curLeftPts.size(); j++)
+     {

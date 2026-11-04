@@ -4,3 +4,6 @@
 [submodule "third_party/Fast-Drone-250"]
 	path = third_party/Fast-Drone-250
 	url = git@github.com:abnormalvis/Fast-Drone-250.git
+[submodule "third_party/VINS-Fusion"]
+	path = third_party/VINS-Fusion
+	url = git@github.com:abnormalvis/VINS-Fusion.git
