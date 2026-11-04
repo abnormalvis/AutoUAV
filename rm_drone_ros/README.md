@@ -42,6 +42,7 @@ rmUAV/
 │       │   ├── uav_utils -> ../../../third_party/Fast-Drone-250/...
 │       │   └── cmake_utils -> ../../../third_party/Fast-Drone-250/...
 │       ├── simulation/
+│       │   ├── fast_drone_realflight/ # Fast-Drone-250 实机 VIO/EGO/px4ctrl 接线
 │       │   └── sitl_offboard/    # SITL 模型、launch、config、脚本
 │       └── open_vins/            # OpenVINS submodule
 └── third_party/
@@ -70,6 +71,8 @@ rmUAV/
 
 `mission_planner`、`px4ctrl` 和 `offboard` 中的 tracker 都可能向 PX4 请求模式或发送控制设定值。一次飞行只能启动一个飞控控制者；具体输入输出与 SITL 启动顺序见 `simulation/sitl_offboard/README.md`。
 
+Fast-Drone-250 实机 EGO-Planner 链路可用 `roslaunch fast_drone_realflight ego_vio_px4ctrl.launch localization:=openvins` 或 `localization:=schurvins` 启动。先单独启动 MAVROS、相机和所选 VIO；该入口负责启动对应桥接器、EGO-Planner 与 `px4ctrl`。详细顺序及验证项见 `simulation/fast_drone_realflight/README.md`。VINS-Fusion 用户仍可直接使用原 `single_run_in_exp.launch` 与 `run_ctrl.launch`，不改参数时保持原话题默认值。
+
 ### 感知接口
 
 `perception/armor_perception` 是装甲板定点观察任务的感知节点。它订阅 `/camera/left/image_raw`、`/localization/odometry` 和 `/vins_mavros_bridge/valid`，输出：
@@ -84,6 +87,10 @@ rmUAV/
 **它不发布 `/position_cmd`。** 感知只报告位姿与观察点，由任务层决定飞巡航航点、飞观察点还是原地保持 —— 上面「一次飞行只能启动一个飞控控制者」的约束同样适用于轨迹来源。定位链路接入方式是：本包把 `/localization/odometry` 在**图像时间戳**处插值出 `T_world_base`，再乘静态外参得到 `T_world_camera`，所有量测直接落到世界系，因此不需要单独的 VIO 自运动补偿模块。
 
 该包的检测核心复用自已归档的 `ob_ws/src/sp_vision_25`（云台自瞄工程），但复制到包内 `thirdparty/sp_vision/` 并逐处打补丁，因为上游顶层 CMake 无法作为 catkin 子目录嵌入（全局 `CMAKE_BUILD_TYPE`、硬编码 OpenVINO、厂商相机 SDK）。改动清单见该目录的 README。
+
+## 机载启动（shfiles）
+
+`shfiles/` 提供 systemd 启动脚本，链路为 MAVROS → D430 红外双目 → SchurVINS（使用飞控 IMU `/mavros/imu/data_raw`）→ `vins_mavros_bridge` → EGO-Planner + `px4ctrl`。SchurVINS 的 D430 实时入口在 `config/d430_schurvins/live_d430_px4imu.launch`（svo_ws 是独立仓库，故放在本工作区跟踪），标定模板为同目录的 `d430_stereo.yaml`（占位值，飞行前必须标定）。安装、配置和检查见 [`shfiles/README.md`](shfiles/README.md)。
 
 ## 克隆与更新
 
@@ -142,10 +149,10 @@ rm_drone_ros/src/perception/armor_perception/build.sh --chain   # 端到端坐�
 ## 当前构建限制
 
 - `perception/d430_slam` 已加 `CATKIN_IGNORE`。其 CMake 和 ORB-SLAM3 初始化代码仍含旧设备上的 `/home/nvidia/...` 绝对路径，并依赖外部安装的 ORB-SLAM3、Pangolin 和特定 OpenCV 版本。该包是一个 RealSense D430 双目 ORB-SLAM3 节点，只发布 `PoseStamped`（`/d430_camera/pose`），不含速度；接入时用 `vins_mavros_bridge` 的 `input_mode: pose_stamped`。当前不参与构建。
-- SchurVINS 已不再作为本工作区的 submodule。它依赖 `dependencies.yaml` 里那套 ethz-asl / uzh-rpg 包（`catkin_simple`、`eigen_catkin`、`eigen_checks`、`minkindr`、`gflags_catkin`、`glog_catkin`、`ceres_catkin`、`dbow2_catkin`、`opengv`、`fast_neon` 等），且 `svo_cmake` 配置阶段失败会连带整个工作区编不出来。这些包现在放在**独立**的 `svo_ws/`（已被 `.gitignore` 排除）里评估，不参与 `rm_drone_ros` 构建。要接入时，把 `Schurvins` 作为包放回来，并让 `vins_mavros_bridge` 用 `vins_fusion.yaml` 那套适配（SchurVINS 派生自 VINS-Fusion，话题与 twist 参考系需按实际输出核对，不能直接假定一致）。
+- SchurVINS 源码及其依赖不参与 `rm_drone_ros` 构建，需在独立工作区启动估计器。控制链路适配器已提供 `schurvins.yaml`，默认订阅 `/svo/pose_imu` 并基于位姿差分估计速度；使用前确认实际 SchurVINS 输出与坐标轴约定符合配置，并标定 IMU 外参。通过 `fast_drone_realflight` 启动器可选 `localization:=schurvins` 接入 EGO-Planner 和 `px4ctrl`。
 - RealSense 驱动包（`realsense2_camera`、`realsense2_description`）的符号链接已移除，不再从本工作区构建。需要时由独立的 RealSense 工作区提供。
 - `ov_init` 和 `ov_msckf` 需要 Ceres Solver；未安装 `libceres-dev` 时 CMake 配置阶段会直接失败。
-- `communication/` 下的 `apm_d430_bridge`、`px4_d430_bridge` 仍含机器相关绝对路径，不参与主构建。
+- `communication/` 下的 `apm_d430_bridge`、`px4_d430_bridge` 含旧机器（Jetson）的串口默认值，不参与主构建；`px4_d430_bridge` 的 `fcu_url` 默认已改为 `/dev/ttyACM0`，可用 launch 参数覆盖。
 - PX4 与 APM 的 MAVROS 启动配置目前仍需分开核对；包被 catkin 发现不代表飞控链路已配置或已验证。
 - `planner/mission_planner` 当前只提供显式触发的 PX4 OFFBOARD 起飞、局部水平航点、悬停和返航基线；不含目标检测、目标定位、避障或自动降落。先在 PX4 SITL 验证，不要直接用于实机。
 - `localization/vins_mavros_bridge` 的接口行为已用合成输入验证，并在 Gazebo/PX4 SITL 里跑通了 `Gazebo → PX4 → MAVROS → 桥接层 → px4ctrl` 全链路（EKF2 跟随误差约 5 mm）。尚未在实机或数据集上验证定位质量；`config/*.yaml` 里的外参是占位值，必须用实机标定结果替换。SITL 里的起飞动作还没跑通，见 `simulation/sitl_offboard/README.md`。

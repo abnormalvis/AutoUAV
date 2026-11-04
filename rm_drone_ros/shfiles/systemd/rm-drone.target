@@ -1,0 +1,6 @@
+[Unit]
+Description=rm_drone autonomous flight stack
+Wants=rm-drone@roscore.service rm-drone@mavros.service rm-drone@camera.service rm-drone@vio.service rm-drone@stack.service
+
+[Install]
+WantedBy=multi-user.target

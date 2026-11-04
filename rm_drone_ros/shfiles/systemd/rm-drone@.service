@@ -1,0 +1,19 @@
+[Unit]
+Description=rm_drone %i
+After=network.target
+PartOf=rm-drone.target
+
+[Service]
+Type=simple
+User=@USER@
+EnvironmentFile=-/etc/rm_drone/rm_drone.env
+ExecStart=@SHFILES@/start_%i.sh
+Restart=on-failure
+RestartSec=3
+KillSignal=SIGINT
+TimeoutStopSec=15
+LimitRTPRIO=99
+LimitMEMLOCK=infinity
+
+[Install]
+WantedBy=rm-drone.target

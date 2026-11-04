@@ -1,0 +1,82 @@
+# D430 rectified IR stereo + PX4 IMU. ALL VALUES ARE PLACEHOLDERS -- calibrate before flight.
+#
+# Intrinsics: copy fx fy cx cy from /camera/infra1/camera_info and /camera/infra2/camera_info
+#   (the K matrix) at the resolution you run. The *_rect_raw images are already
+#   rectified, so distortion is zero.
+# T_B_C: camera pose in the IMU (body) frame = Kalibr T_imu_cam. Run Kalibr on the
+#   infra stereo + /mavros/imu/data_raw. The nominal D430 baseline is 0.05 m; cam1 is
+#   to the +x (right) of cam0 in the camera frame.
+# imu_params: noise values below are typical of a PX4 flight-controller IMU, not measured.
+#   delay_imu_cam is the camera-IMU time offset (Kalibr "timeshift cam0 to imu0").
+label: "D430_PX4"
+id: 6d4a5f1c3b7e4a0f9a6d0e5d430a0001
+cameras:
+- camera:
+    label: cam0
+    id: 6d4a5f1c3b7e4a0f9a6d0e5d430a0010
+    line-delay-nanoseconds: 0
+    image_height: 480
+    image_width: 848
+    type: pinhole
+    intrinsics:
+      cols: 1
+      rows: 4
+      data: [430.0, 430.0, 424.0, 240.0]
+    distortion:
+      type: radial-tangential
+      parameters:
+        cols: 1
+        rows: 4
+        data: [0.0, 0.0, 0.0, 0.0]
+  T_B_C:
+    cols: 4
+    rows: 4
+    data: [0.0, 0.0, 1.0, 0.0,
+          -1.0, 0.0, 0.0, 0.0,
+           0.0, -1.0, 0.0, 0.0,
+           0.0, 0.0, 0.0, 1.0]
+- camera:
+    label: cam1
+    id: 6d4a5f1c3b7e4a0f9a6d0e5d430a0011
+    line-delay-nanoseconds: 0
+    image_height: 480
+    image_width: 848
+    type: pinhole
+    intrinsics:
+      cols: 1
+      rows: 4
+      data: [430.0, 430.0, 424.0, 240.0]
+    distortion:
+      type: radial-tangential
+      parameters:
+        cols: 1
+        rows: 4
+        data: [0.0, 0.0, 0.0, 0.0]
+  T_B_C:
+    cols: 4
+    rows: 4
+    data: [0.0, 0.0, 1.0, 0.0,
+          -1.0, 0.0, 0.0, -0.05,
+           0.0, -1.0, 0.0, 0.0,
+           0.0, 0.0, 0.0, 1.0]
+
+imu_params:
+  delay_imu_cam: 0.0
+  max_imu_delta_t: 0.02
+  acc_max: 156.0
+  omega_max: 17
+  sigma_omega_c: 0.004
+  sigma_acc_c: 0.08
+  sigma_omega_bias_c: 2.0e-5
+  sigma_acc_bias_c: 0.0004
+  sigma_integration: 0.0
+  g: 9.81
+  imu_rate: 100
+
+imu_initialization:
+  velocity: [0.0, 0, 0.0]
+  omega_bias: [0.0, 0, 0.0]
+  acc_bias: [0.0, 0.0, 0.0]
+  velocity_sigma: 2.0
+  omega_bias_sigma: 0.01
+  acc_bias_sigma: 0.1
