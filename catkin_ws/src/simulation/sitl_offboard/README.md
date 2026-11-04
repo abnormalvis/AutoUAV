@@ -100,12 +100,12 @@ git config --global --add safe.directory "$PX4_HOME"
 
 ### 2. Build and source the catkin workspace
 
-One catkin workspace, `rm_drone_ros`, is used. The `ego_planner`/`px4ctrl`
+One catkin workspace, `catkin_ws`, is used. The `ego_planner`/`px4ctrl`
 flight stack is symlinked into the `planner/` and `controller/` categories from
 `third_party/Fast-Drone-250`, so a single build covers everything:
 
 ```bash
-cd <path-to-rmUAV>/rm_drone_ros
+cd <path-to-rmUAV>/catkin_ws
 source /opt/ros/noetic/setup.bash
 catkin_make -DCATKIN_WHITELIST_PACKAGES="ov_core;ov_msckf;ov_init;ov_data;ov_eval;vins_mavros_bridge;sitl_offboard;ego_planner;plan_env;path_searching;bspline_opt;traj_utils;quadrotor_msgs;px4ctrl;uav_utils;cmake_utils;offboard" -j4
 source devel/setup.bash
@@ -171,11 +171,11 @@ export PX4_BUILD_DIR="$PX4_HOME/build/px4_sitl_default"
 
 source /opt/ros/noetic/setup.bash
 source "$RMUAV_ROOT/third_party/devel/setup.bash"
-source "$RMUAV_ROOT/rm_drone_ros/devel/setup.bash"
+source "$RMUAV_ROOT/catkin_ws/devel/setup.bash"
 
-export ROS_PACKAGE_PATH="$RMUAV_ROOT/rm_drone_ros/src:$RMUAV_ROOT/third_party/src:/opt/ros/noetic/share"
-export CMAKE_PREFIX_PATH="$RMUAV_ROOT/rm_drone_ros/devel:$RMUAV_ROOT/third_party/devel:/opt/ros/noetic"
-export LD_LIBRARY_PATH="$RMUAV_ROOT/rm_drone_ros/devel/lib:$RMUAV_ROOT/third_party/devel/lib:$LD_LIBRARY_PATH"
+export ROS_PACKAGE_PATH="$RMUAV_ROOT/catkin_ws/src:$RMUAV_ROOT/third_party/src:/opt/ros/noetic/share"
+export CMAKE_PREFIX_PATH="$RMUAV_ROOT/catkin_ws/devel:$RMUAV_ROOT/third_party/devel:/opt/ros/noetic"
+export LD_LIBRARY_PATH="$RMUAV_ROOT/catkin_ws/devel/lib:$RMUAV_ROOT/third_party/devel/lib:$LD_LIBRARY_PATH"
 roslaunch sitl_offboard px4_vins_fusion_ctrl.launch
 ```
 

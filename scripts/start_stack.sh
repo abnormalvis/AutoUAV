@@ -16,5 +16,5 @@ esac
 rm_wait_topic /mavros/state 60
 rm_wait_topic "$VIO_TOPIC" 120
 
-exec roslaunch fast_drone_realflight ego_vio_px4ctrl.launch \
+exec roslaunch "$ROOT_DIR/launch/realflight_ego_vio_px4ctrl.launch" \
   localization:="$LOCALIZATION" input_topic:="$VIO_TOPIC" drone_id:="${DRONE_ID:-0}"

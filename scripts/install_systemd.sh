@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # Install / remove the rm-drone systemd units. Run with sudo.
-#   sudo ./install_systemd.sh [--user NAME] [--enable]
-#   sudo ./install_systemd.sh --uninstall
+#   sudo scripts/install_systemd.sh [--user NAME] [--enable]
+#   sudo scripts/install_systemd.sh --uninstall
 set -euo pipefail
 
-SHFILES="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+ROOT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+SCRIPTS="$ROOT/scripts"
+UNITS="$ROOT/config/systemd"
 UNIT_DIR=/etc/systemd/system
 RUN_USER="${SUDO_USER:-$USER}"
 ENABLE=0
@@ -25,13 +27,13 @@ done
 
 [ "$(id -u)" -eq 0 ] || { echo "run as root (sudo)" >&2; exit 1; }
 
-chmod +x "$SHFILES"/start_*.sh
+chmod +x "$SCRIPTS"/*.sh
 install -d -o "$RUN_USER" /var/log/rm_drone /var/log/rm_drone/ros /etc/rm_drone
-[ -f /etc/rm_drone/rm_drone.env ] || install -m 644 "$SHFILES/systemd/rm_drone.env.example" /etc/rm_drone/rm_drone.env
+[ -f /etc/rm_drone/rm_drone.env ] || install -m 644 "$UNITS/rm_drone.env.example" /etc/rm_drone/rm_drone.env
 
-sed -e "s|@USER@|$RUN_USER|" -e "s|@SHFILES@|$SHFILES|" \
-  "$SHFILES/systemd/rm-drone@.service" > "$UNIT_DIR/rm-drone@.service"
-install -m 644 "$SHFILES/systemd/rm-drone.target" "$UNIT_DIR/rm-drone.target"
+sed -e "s|@USER@|$RUN_USER|" -e "s|@SCRIPTS@|$SCRIPTS|" \
+  "$UNITS/rm-drone@.service" > "$UNIT_DIR/rm-drone@.service"
+install -m 644 "$UNITS/rm-drone.target" "$UNIT_DIR/rm-drone.target"
 systemctl daemon-reload
 
 if [ "$ENABLE" -eq 1 ]; then

@@ -6,9 +6,10 @@ RM_ENV_FILE="${RM_ENV_FILE:-/etc/rm_drone/rm_drone.env}"
 # shellcheck disable=SC1090
 [ -f "$RM_ENV_FILE" ] && . "$RM_ENV_FILE"
 
-SHFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-RM_DRONE_WS="${RM_DRONE_WS:-$(cd "$SHFILES_DIR/.." && pwd)}"
-SVO_WS="${SVO_WS:-$(cd "$RM_DRONE_WS/../svo_ws" 2>/dev/null && pwd)}"
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="${ROOT_DIR:-$(cd "$SCRIPTS_DIR/.." && pwd)}"
+CATKIN_WS="${CATKIN_WS:-$ROOT_DIR/catkin_ws}"
+SVO_WS="${SVO_WS:-$ROOT_DIR/svo_ws}"
 ROS_DISTRO_NAME="${ROS_DISTRO_NAME:-noetic}"
 
 export ROS_MASTER_URI="${ROS_MASTER_URI:-http://127.0.0.1:11311}"
@@ -26,8 +27,8 @@ rm_source() {
 
 rm_source "/opt/ros/$ROS_DISTRO_NAME/setup.bash"
 
-# Source only the workspace a stage needs: rm_drone_ros and svo_ws must not be overlaid by default.
-rm_source_rm_drone() { rm_source "$RM_DRONE_WS/devel/setup.bash"; }
+# Source only the workspace a stage needs: catkin_ws and svo_ws must not be overlaid by default.
+rm_source_rm_drone() { rm_source "$CATKIN_WS/devel/setup.bash"; }
 rm_source_svo()      { rm_source "$SVO_WS/devel/setup.bash"; }
 
 rm_log() { echo "[rm_drone:${RM_STAGE:-?}] $*"; }

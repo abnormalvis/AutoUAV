@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Read-only chain check: VIO -> bridge -> /localization/odometry -> EGO/px4ctrl, plus
 # consistency with PX4. Prints PASS/FAIL per item; attach the output when reporting issues.
-#   shfiles/check_chain.sh [schurvins|openvins]
+#   scripts/check_chain.sh [schurvins|openvins]
 set -uo pipefail
 RM_STAGE=check
 . "$(dirname "$(readlink -f "$0")")/common.sh"

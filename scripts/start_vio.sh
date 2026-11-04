@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # VIO estimator. LOCALIZATION=schurvins runs SchurVINS from svo_ws (separate
-# workspace, must not share an overlay with rm_drone_ros); openvins runs ov_msckf.
+# workspace, must not share an overlay with catkin_ws); openvins runs ov_msckf.
 set -euo pipefail
 RM_STAGE=vio
 . "$(dirname "$(readlink -f "$0")")/common.sh"
@@ -17,7 +17,7 @@ rm_wait_topic "$IMU_TOPIC" 60
 case "$LOCALIZATION" in
   schurvins)
     rm_source_svo
-    : "${SVO_LAUNCH:=$RM_DRONE_WS/config/d430_schurvins/live_d430_px4imu.launch}"
+    : "${SVO_LAUNCH:=$ROOT_DIR/config/d430_schurvins/live_d430_px4imu.launch}"
     exec roslaunch "$SVO_LAUNCH" \
       cam0_topic:="$CAM0_TOPIC" cam1_topic:="$CAM1_TOPIC" imu_topic:="$IMU_TOPIC"
     ;;
