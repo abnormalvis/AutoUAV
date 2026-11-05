@@ -1,7 +1,7 @@
 <!-- SchurVINS live: RealSense D430 rectified IR stereo + PX4 IMU via MAVROS.
      Start MAVROS and the camera first. Calibration file must be filled in (see calib/d430_stereo.yaml). -->
 <launch>
-  <arg name="calib_file" default="$(dirname)/d430_stereo.yaml"/>
+  <arg name="calib_file" default="$(dirname)/svo_stereo.yaml"/>
   <arg name="cam0_topic" default="/camera/infra1/image_rect_raw"/>
   <arg name="cam1_topic" default="/camera/infra2/image_rect_raw"/>
   <arg name="imu_topic" default="/mavros/imu/data_raw"/>

@@ -37,7 +37,9 @@ check_rate /localization/odometry 10
 check_rate /mavros/vision_pose/pose 10
 
 valid=$(timeout 3 rostopic echo -n 1 /vins_mavros_bridge/valid 2>/dev/null | grep -m1 "data:" | awk '{print $2}')
-[ "$valid" = "true" ] && pass "/vins_mavros_bridge/valid true" || fail "/vins_mavros_bridge/valid = ${valid:-none}"
+[ "$valid" = "True" ] || [ "$valid" = "true" ] \
+  && pass "/vins_mavros_bridge/valid true" \
+  || fail "/vins_mavros_bridge/valid = ${valid:-none}"
 
 connected=$(timeout 3 rostopic echo -n 1 /mavros/state 2>/dev/null | grep -m1 "connected:" | awk '{print $2}')
 [ "$connected" = "True" ] || [ "$connected" = "true" ] && pass "FCU connected" || fail "FCU not connected"
@@ -55,14 +57,34 @@ for n in "/drone_${DRONE_ID:-0}_ego_planner_node" /px4ctrl; do
   fi
 done
 
-# Offset between PX4 local position and the VIO output: grows if EKF2 rejects external vision.
-read -r vx vy vz < <(timeout 3 rostopic echo -n 1 /localization/odometry/pose/pose/position 2>/dev/null | awk '/^x:|^y:|^z:/{printf "%s ", $2}')
-read -r px py pz < <(timeout 3 rostopic echo -n 1 /mavros/local_position/pose/pose/position 2>/dev/null | awk '/^x:|^y:|^z:/{printf "%s ", $2}')
-if [ -n "${vx:-}" ] && [ -n "${px:-}" ]; then
-  d=$(awk -v a="$vx" -v b="$vy" -v c="$vz" -v x="$px" -v y="$py" -v z="$pz" 'BEGIN{printf "%.3f", sqrt((a-x)^2+(b-y)^2+(c-z)^2)}')
-  if awk -v d="$d" 'BEGIN{exit !(d<0.3)}'; then pass "PX4 vs VIO position offset ${d}m"; else fail "PX4 vs VIO position offset ${d}m (EKF2 may not be fusing; see enable_px4_external_vision.sh)"; fi
+# The two estimators have independent local origins, so compare motion over a
+# short interval rather than their absolute positions.
+read_position() {
+  timeout 3 rostopic echo -n 1 "$1" 2>/dev/null |
+    awk '/^x:/{x=$2} /^y:/{y=$2} /^z:/{z=$2} END{if(x!="" && y!="" && z!="") print x, y, z}'
+}
+
+read -r vx1 vy1 vz1 <<< "$(read_position /localization/odometry/pose/pose/position)"
+read -r px1 py1 pz1 <<< "$(read_position /mavros/local_position/pose/pose/position)"
+if [ -n "${vx1:-}" ] && [ -n "${px1:-}" ]; then
+  sleep 2
+  read -r vx2 vy2 vz2 <<< "$(read_position /localization/odometry/pose/pose/position)"
+  read -r px2 py2 pz2 <<< "$(read_position /mavros/local_position/pose/pose/position)"
+fi
+
+if [ -n "${vx1:-}" ] && [ -n "${px1:-}" ] && [ -n "${vx2:-}" ] && [ -n "${px2:-}" ]; then
+  d=$(awk -v ax="$vx1" -v ay="$vy1" -v az="$vz1" \
+          -v bx="$vx2" -v by="$vy2" -v bz="$vz2" \
+          -v cx="$px1" -v cy="$py1" -v cz="$pz1" \
+          -v dx="$px2" -v dy="$py2" -v dz="$pz2" \
+          'BEGIN{printf "%.3f", sqrt(((bx-ax)-(dx-cx))^2+((by-ay)-(dy-cy))^2+((bz-az)-(dz-cz))^2)}')
+  if awk -v d="$d" 'BEGIN{exit !(d<0.3)}'; then
+    pass "PX4/VIO motion mismatch ${d}m over 2s (absolute local-origin offset ignored)"
+  else
+    fail "PX4/VIO motion mismatch ${d}m over 2s (check time sync and EKF2 external-vision fusion)"
+  fi
 else
-  fail "could not read positions for consistency check"
+  fail "could not read position samples for consistency check"
 fi
 
 echo "---"
